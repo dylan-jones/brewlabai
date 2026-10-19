@@ -18,7 +18,7 @@ export default function AuthError() {
         </p>
         <UI.Row style={{ marginTop: 24 }}>
           <UI.Button as={Link} href="/">
-            Back to recipe studio
+            Back to log in
           </UI.Button>
           <UI.Button as="a" href="/auth/login" $primary>
             Try again

@@ -7,11 +7,21 @@ import {
   type StateStorage,
 } from "zustand/middleware";
 import { del, get, set } from "idb-keyval";
-import { initialRecipe, sampleInventory, sampleSuppliers } from "./seed";
-import { inventorySchema, recipeSchema, supplierSchema } from "./schemas";
+import { createEmptyRecipe, isLegacyDemoRecipe, sampleInventory, sampleSuppliers } from "./seed";
+import { inventorySchema, recipeDraftSchema, recipeSchema, supplierSchema } from "./schemas";
 import type { ChatMessage, InventoryItem, Recipe, Supplier } from "./types";
 
 let storageFailure = false;
+function withoutDemoInventory(inventory: InventoryItem[], source: string | undefined) {
+  return inventory.filter((item) => source === "brewfather" ||
+    !sampleInventory.some((sample) => JSON.stringify(item) === JSON.stringify(sample)));
+}
+
+function withoutDemoSuppliers(suppliers: Supplier[]) {
+  return suppliers.filter((item) =>
+    !sampleSuppliers.some((sample) => JSON.stringify(item) === JSON.stringify(sample)));
+}
+
 export function hasStorageFailure() {
   return storageFailure;
 }
@@ -47,13 +57,14 @@ interface BrewState {
   suppliers: Supplier[];
   messages: ChatMessage[];
   savedRecipes: { id: string; recipe: Recipe; date: string }[];
-  inventorySource: "sample" | "brewfather" | "manual";
+  inventorySource: "brewfather" | "manual";
   lastSync: string | null;
   accountId: string | null;
   dark: boolean;
   units: "metric" | "imperial";
   setRecipe: (recipe: Recipe) => void;
   updateRecipe: (updates: Partial<Recipe>) => void;
+  startNewRecipe: () => void;
   setInventory: (
     items: InventoryItem[],
     source: BrewState["inventorySource"],
@@ -70,12 +81,12 @@ interface BrewState {
 export const useBrewStore = create<BrewState>()(
   persist(
     (setState, getState) => ({
-      recipe: initialRecipe,
-      inventory: sampleInventory,
-      suppliers: sampleSuppliers,
+      recipe: createEmptyRecipe(),
+      inventory: [],
+      suppliers: [],
       messages: [],
       savedRecipes: [],
-      inventorySource: "sample",
+      inventorySource: "manual",
       lastSync: null,
       accountId: null,
       dark: false,
@@ -83,14 +94,15 @@ export const useBrewStore = create<BrewState>()(
       setRecipe: (recipe) => setState({ recipe }),
       updateRecipe: (updates) =>
         setState((state) => ({ recipe: { ...state.recipe, ...updates } })),
+      startNewRecipe: () => setState({ recipe: createEmptyRecipe(), messages: [] }),
       setInventory: (inventory, inventorySource) =>
         setState({
-          inventory,
+          inventory: withoutDemoInventory(inventory, inventorySource),
           inventorySource,
           lastSync:
             inventorySource === "brewfather" ? new Date().toISOString() : null,
         }),
-      setSuppliers: (suppliers) => setState({ suppliers }),
+      setSuppliers: (suppliers) => setState({ suppliers: withoutDemoSuppliers(suppliers) }),
       addMessage: (message) =>
         setState((state) => ({
           messages: [...state.messages.slice(-19), message],
@@ -115,7 +127,7 @@ export const useBrewStore = create<BrewState>()(
       clearAccountData: (accountId) => {
         if (getState().accountId !== accountId)
           setState({
-            recipe: getState().accountId ? initialRecipe : getState().recipe,
+            recipe: getState().accountId ? createEmptyRecipe() : getState().recipe,
             accountId,
             inventory: [],
             suppliers: [],
@@ -134,21 +146,27 @@ export const useBrewStore = create<BrewState>()(
       merge: (persisted, current) => {
         const data = persisted as Partial<BrewState> | undefined;
         if (!data) return current;
-        const recipe = recipeSchema.safeParse(data.recipe);
+        const recipe = recipeDraftSchema.safeParse(data.recipe);
         const inventory = inventorySchema.safeParse(data.inventory);
         const suppliers = supplierSchema.array().safeParse(data.suppliers);
         return {
           ...current,
-          recipe: recipe.success ? recipe.data : current.recipe,
-          inventory: inventory.success ? inventory.data : current.inventory,
-          suppliers: suppliers.success ? suppliers.data : current.suppliers,
+          recipe: recipe.success && !isLegacyDemoRecipe(recipe.data)
+            ? recipe.data
+            : createEmptyRecipe(),
+          inventory: inventory.success
+            ? withoutDemoInventory(inventory.data, data.inventorySource)
+            : current.inventory,
+          suppliers: suppliers.success
+            ? withoutDemoSuppliers(suppliers.data)
+            : current.suppliers,
           dark: data.dark === true,
           units: data.units === "imperial" ? "imperial" : "metric",
           inventorySource:
             data.inventorySource === "brewfather" ||
             data.inventorySource === "manual"
               ? data.inventorySource
-              : "sample",
+              : "manual",
           accountId: typeof data.accountId === "string" ? data.accountId : null,
           lastSync: typeof data.lastSync === "string" ? data.lastSync : null,
           savedRecipes: Array.isArray(data.savedRecipes)
@@ -157,7 +175,8 @@ export const useBrewStore = create<BrewState>()(
                   (item) =>
                     typeof item.id === "string" &&
                     typeof item.date === "string" &&
-                    recipeSchema.safeParse(item.recipe).success,
+                    recipeSchema.safeParse(item.recipe).success &&
+                    !isLegacyDemoRecipe(item.recipe),
                 )
                 .slice(0, 100)
             : [],

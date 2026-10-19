@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { createClient, isSupabaseConfigured } from "./supabase/server";
+import { getSession, isAuthConfigured } from "./auth";
+import { getDatabase } from "./db";
+import { WorkspaceDatabase } from "./workspace-db";
 
 export class ApiError extends Error {
   constructor(
@@ -12,22 +14,21 @@ export class ApiError extends Error {
 }
 
 export async function requireUser() {
-  if (!isSupabaseConfigured())
+  if (!isAuthConfigured())
     throw new ApiError(
-      "Supabase is not configured. Add the environment variables and enable Google sign-in.",
+      "Google authentication is not configured. Add the server environment variables.",
       503,
     );
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user)
+  const session = await getSession();
+  if (!session)
     throw new ApiError(
       "Sign in with Google to use your connected brewing workspace.",
       401,
     );
-  return { supabase, user };
+  return {
+    workspace: new WorkspaceDatabase(await getDatabase(), session.user.id),
+    user: session.user,
+  };
 }
 
 export function checkOrigin(request: Request) {
@@ -98,18 +99,10 @@ export function apiError(error: unknown) {
 }
 
 export async function consumeQuota(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  workspace: WorkspaceDatabase,
   action: "ai" | "sync",
 ) {
-  const { data, error } = await supabase.rpc("consume_api_quota", {
-    action_name: action,
-  });
-  if (error)
-    throw new ApiError(
-      "Apply the Supabase migration before using connected services.",
-      503,
-    );
-  if (!data)
+  if (!await workspace.consumeQuota(action))
     throw new ApiError(
       "Hourly usage limit reached. Please try again later.",
       429,

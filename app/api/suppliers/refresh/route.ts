@@ -13,7 +13,7 @@ import { supplierSchema } from "@/lib/schemas";
 export async function POST(request: Request) {
   try {
     checkOrigin(request);
-    const { supabase, user } = await requireUser();
+    const { workspace } = await requireUser();
     const { id } = z
       .object({ id: z.string().min(1).max(160) })
       .parse(await readJSON(request, 2048));
@@ -34,14 +34,9 @@ export async function POST(request: Request) {
       /(^|\.)(localhost|local|internal|test)$/i.test(url.hostname)
     )
       throw new ApiError("Invalid server-configured stockist feed.", 503);
-    await consumeQuota(supabase, "sync");
-    const { data, error } = await supabase
-      .from("suppliers")
-      .select("profile")
-      .eq("user_id", user.id)
-      .eq("id", id)
-      .single();
-    if (error) throw error;
+    await consumeQuota(workspace, "sync");
+    const existing = await workspace.getSupplier(id);
+    if (!existing) throw new ApiError("Supplier not found.", 404);
     const response = await fetch(url, {
       signal: AbortSignal.timeout(15000),
       redirect: "error",
@@ -58,13 +53,8 @@ export async function POST(request: Request) {
       } as RequestInit),
       1500000,
     );
-    const profile = supplierSchema.parse({ ...data.profile, products });
-    const { error: updateError } = await supabase
-      .from("suppliers")
-      .update({ profile, checked_at: new Date().toISOString() })
-      .eq("user_id", user.id)
-      .eq("id", id);
-    if (updateError) throw updateError;
+    const profile = supplierSchema.parse({ ...existing, products });
+    await workspace.saveSupplier(profile, new Date().toISOString());
     return NextResponse.json({ supplier: profile });
   } catch (error) {
     return apiError(error);

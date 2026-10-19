@@ -1,7 +1,7 @@
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all(
-      ["apis", "pages", "start-url"].map((name) => caches.delete(name)),
+      ["apis", "pages", "start-url", "brew-shell"].map((name) => caches.delete(name)),
     ),
   );
 });

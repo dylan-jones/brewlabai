@@ -1,4 +1,7 @@
 import withPWAInit from "@ducanh2912/next-pwa";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+initOpenNextCloudflareForDev();
 
 const withPWA = withPWAInit({
   dest: "public",
@@ -19,19 +22,6 @@ const withPWA = withPWAInit({
         options: {
           cacheName: "brew-static",
           expiration: { maxEntries: 128, maxAgeSeconds: 2592000 },
-        },
-      },
-      {
-        urlPattern: ({ url, sameOrigin, request }) =>
-          sameOrigin &&
-          request.mode === "navigate" &&
-          url.pathname === "/" &&
-          !url.search,
-        handler: "NetworkFirst",
-        options: {
-          cacheName: "brew-shell",
-          networkTimeoutSeconds: 4,
-          expiration: { maxEntries: 1 },
         },
       },
     ],
@@ -55,6 +45,14 @@ export default withPWA({
       {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/auth/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/profile",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
       },
       {
         source: "/:path*",

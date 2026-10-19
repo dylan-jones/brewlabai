@@ -583,6 +583,26 @@ export const Field = styled.label`
     font-size: 12px;
   }
 `;
+export const RecipeSettings = styled.section`
+  padding: 20px 0;
+  background: ${({ theme }) => theme.colors.surface};
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+`;
+export const SettingsFields = styled(Fields)`
+  padding: 0;
+  margin-top: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  @media (max-width: 1000px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (max-width: 440px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
 export const WaterStats = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

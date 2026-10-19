@@ -37,7 +37,7 @@ export function normalizeBrewfatherItem(
     id: `${kind}-${item._id}`,
     name: item.name,
     kind,
-    quantity: kind === "grain" ? quantity / 1000 : quantity,
+    quantity,
     unit: kind === "grain" ? "kg" : kind === "yeast" ? "pack" : "g",
     ...(kind === "hop" && item.alpha !== undefined
       ? { alpha: Math.min(30, Math.max(0, item.alpha)) }
@@ -68,6 +68,7 @@ export async function fetchBrewfatherInventory(
       );
       url.searchParams.set("limit", "50");
       url.searchParams.set("complete", "true");
+      url.searchParams.set("inventory_exists", "true");
       if (credentials.version === "v1")
         url.searchParams.set("offset", String(page * 50));
       else if (cursor) url.searchParams.set("start_after", cursor);
@@ -97,6 +98,7 @@ export async function fetchBrewfatherInventory(
         .max(50)
         .parse(await response.json());
       for (const row of rows) {
+        if (row.inventory <= 0) continue;
         if (
           collection.kind === "salt" &&
           !/gypsum|calcium chloride|epsom|baking soda|chalk|sodium|water agent/i.test(

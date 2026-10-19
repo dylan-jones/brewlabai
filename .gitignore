@@ -4,6 +4,7 @@ node_modules/
 .wrangler/
 .env*
 !.env.example
+.dev.vars*
 *.tsbuildinfo
 public/sw.js
 public/sw.js.map

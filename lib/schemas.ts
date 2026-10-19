@@ -49,6 +49,13 @@ export const recipeSchema = z.object({
   }),
 });
 
+export const recipeDraftSchema = recipeSchema.extend({
+  name: z.string().trim().max(160),
+  style: z.string().trim().max(160),
+  yeast: z.string().trim().max(160),
+  grains: z.array(recipeSchema.shape.grains.element).max(40),
+});
+
 export const supplierSchema = z.object({
   id: text,
   name: text,
@@ -94,7 +101,7 @@ export const proposalSchema = z.object({
   recipe: recipeSchema,
 });
 export const aiRequestSchema = z.object({
-  recipe: recipeSchema,
+  recipe: recipeDraftSchema,
   messages: z
     .array(
       z.object({

@@ -1,9 +1,9 @@
 import { signInWithGoogle } from "../actions";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isAuthConfigured } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  if (!isSupabaseConfigured())
+  if (!isAuthConfigured())
     return NextResponse.redirect(
       new URL("/auth/error?reason=configuration", request.url),
     );

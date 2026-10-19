@@ -14,7 +14,7 @@ export function requirementsFor(recipe: Recipe): Requirement[] {
       quantity: hop.grams,
       unit: "g" as const,
     })),
-    { name: recipe.yeast, kind: "yeast", quantity: 1, unit: "pack" },
+    { name: recipe.yeast, kind: "yeast", quantity: recipe.yeast.trim() ? 1 : 0, unit: "pack" },
     { name: "Gypsum", kind: "salt", quantity: recipe.water.gypsum, unit: "g" },
     {
       name: "Calcium chloride",

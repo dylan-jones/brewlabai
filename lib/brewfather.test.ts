@@ -18,15 +18,15 @@ describe("Brewfather inventory", () => {
       {
         _id: "grain",
         name: "Pilsner",
-        inventory: 5000,
-        inventoryBatches: [{ batch: "A", inventory: 5000 }],
+        inventory: 5,
+        inventoryBatches: [{ batch: "A", inventory: 5 }],
       },
       "grain",
     );
     expect(grain.quantity).toBe(5);
     expect(grain.unit).toBe("kg");
     expect(grain.metadata?.inventoryBatches).toEqual([
-      { batch: "A", inventory: 5000 },
+      { batch: "A", inventory: 5 },
     ]);
     expect(
       normalizeBrewfatherItem(
@@ -53,7 +53,7 @@ describe("Brewfather inventory", () => {
             ? Array.from({ length: 50 }, (_, index) => ({
                 _id: `id-${index}`,
                 name: `Malt ${index}`,
-                inventory: 1000,
+                inventory: 1,
               }))
             : [];
         return Response.json(rows);
@@ -61,6 +61,8 @@ describe("Brewfather inventory", () => {
     );
     const result = await fetchBrewfatherInventory(credentials);
     expect(result).toHaveLength(50);
+    expect(result[0].quantity).toBe(1);
+    expect(calls.every((url) => url.searchParams.get("inventory_exists") === "true")).toBe(true);
     expect(calls[1].searchParams.get("start_after")).toBe("id-49");
     expect(calls.map((url) => url.pathname.split("/").at(-1))).toEqual([
       "fermentables",
@@ -88,7 +90,8 @@ describe("Brewfather inventory", () => {
         );
       }),
     );
-    await fetchBrewfatherInventory({ ...credentials, version: "v1" });
+    const result = await fetchBrewfatherInventory({ ...credentials, version: "v1" });
+    expect(result).toEqual([]);
     expect(calls[1].pathname).toContain("/v1/");
     expect(calls[1].searchParams.get("offset")).toBe("50");
   });
@@ -100,5 +103,20 @@ describe("Brewfather inventory", () => {
     await expect(fetchBrewfatherInventory(credentials)).rejects.toThrow(
       "rate limit",
     );
+  });
+
+  it("excludes zero, negative, null, and missing stock from every collection", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json([
+      { _id: "zero", name: "Gypsum", inventory: 0 },
+      { _id: "string-zero", name: "Gypsum", inventory: "0" },
+      { _id: "negative", name: "Gypsum", inventory: -1 },
+      { _id: "null", name: "Gypsum", inventory: null },
+      { _id: "missing", name: "Gypsum" },
+      { _id: "stock", name: "Gypsum", inventory: "0.25" },
+    ])));
+    const result = await fetchBrewfatherInventory(credentials);
+    expect(result).toHaveLength(4);
+    expect(result.map((item) => item.id)).toEqual(["grain-stock", "hop-stock", "yeast-stock", "salt-stock"]);
+    expect(result.every((item) => item.quantity === 0.25)).toBe(true);
   });
 });

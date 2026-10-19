@@ -3,32 +3,24 @@ import {
   apiError,
   checkOrigin,
   consumeQuota,
-  readJSON,
   requireUser,
 } from "@/lib/api";
 import {
   brewfatherCredentials,
   fetchBrewfatherInventory,
 } from "@/lib/brewfather";
+import { getBrewfatherConnection } from "@/lib/profile";
 
 export async function POST(request: Request) {
   try {
     checkOrigin(request);
-    const { supabase, user } = await requireUser();
+    const { workspace, user } = await requireUser();
     const credentials = brewfatherCredentials.parse(
-      await readJSON(request, 2048),
+      await getBrewfatherConnection(workspace, user.id),
     );
-    await consumeQuota(supabase, "sync");
+    await consumeQuota(workspace, "sync");
     const inventory = await fetchBrewfatherInventory(credentials);
-    const { error } = await supabase
-      .from("inventories")
-      .upsert({
-        user_id: user.id,
-        items: inventory,
-        source: "brewfather",
-        synced_at: new Date().toISOString(),
-      });
-    if (error) throw error;
+    await workspace.saveInventory(inventory, "brewfather");
     return NextResponse.json({ inventory });
   } catch (error) {
     return apiError(error);

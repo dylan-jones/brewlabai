@@ -1,16 +1,22 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
+import { getAuth, isAuthConfigured } from "@/lib/auth";
 
 export async function signInWithGoogle() {
-  const site = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!site) redirect("/auth/error?reason=configuration");
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: new URL("/auth/callback", site).href },
-  });
-  if (error || !data.url) redirect("/auth/error?reason=provider");
-  redirect(data.url);
+  if (!isAuthConfigured()) redirect("/auth/error?reason=configuration");
+  let url: string | undefined;
+  try {
+    const auth = await getAuth();
+    const result = await auth.api.signInSocial({
+      headers: await headers(),
+      body: { provider: "google", callbackURL: "/", errorCallbackURL: "/auth/error" },
+    });
+    url = result.url;
+  } catch {
+    redirect("/auth/error?reason=provider");
+  }
+  if (!url) redirect("/auth/error?reason=provider");
+  redirect(url);
 }

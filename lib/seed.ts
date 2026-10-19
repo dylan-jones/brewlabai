@@ -1,5 +1,23 @@
 import type { InventoryItem, Recipe, Supplier } from "./types";
 
+export function createEmptyRecipe(): Recipe {
+  return {
+    name: "",
+    style: "",
+    batchLiters: 20,
+    efficiency: 74,
+    boilMinutes: 60,
+    boilOff: 3,
+    mashTunLiters: 40,
+    mashC: 67,
+    yeast: "",
+    attenuation: 75,
+    grains: [],
+    hops: [],
+    water: { calcium: 0, sulfate: 0, chloride: 0, gypsum: 0, calciumChloride: 0 },
+  };
+}
+
 export const initialRecipe: Recipe = {
   name: "Citra–Mosaic Hazy DIPA",
   style: "22A · Double IPA",
@@ -72,6 +90,10 @@ export const initialRecipe: Recipe = {
     calciumChloride: 5,
   },
 };
+
+export function isLegacyDemoRecipe(recipe: Recipe) {
+  return JSON.stringify(recipe) === JSON.stringify(initialRecipe);
+}
 
 export const sampleInventory: InventoryItem[] = [
   {

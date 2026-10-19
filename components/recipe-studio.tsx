@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -18,7 +19,6 @@ import {
   Hop,
   LoaderCircle,
   LogIn,
-  LogOut,
   Moon,
   Package,
   Plus,
@@ -39,9 +39,11 @@ import {
 } from "lucide-react";
 import { useBrewStore, hasStorageFailure } from "@/lib/store";
 import { calculateRecipe } from "@/lib/calculations";
+import { bjcpBeerStyles } from "@/lib/bjcp";
+import { aiProviders, type AIProvider } from "@/lib/profile-settings";
 import { optimizeSingleSupplier, requirementsFor } from "@/lib/optimizer";
-import { grainCatalog, hopCatalog } from "@/lib/seed";
-import { inventorySchema, recipeSchema, supplierSchema } from "@/lib/schemas";
+import { grainCatalog, hopCatalog, isLegacyDemoRecipe } from "@/lib/seed";
+import { inventorySchema, recipeDraftSchema, recipeSchema, supplierSchema } from "@/lib/schemas";
 import { downloadFile, exportBeerXML, toBrewfather } from "@/lib/export";
 import type {
   Grain,
@@ -55,9 +57,6 @@ type View = "studio" | "inventory" | "sourcing" | "recipes";
 type Modal =
   | "grain"
   | "hop"
-  | "equipment"
-  | "sync"
-  | "login"
   | "export"
   | "supplier"
   | "inventory"
@@ -157,6 +156,7 @@ export default function RecipeStudio() {
   const [activeTab, setActiveTab] = useState("grains");
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
+  const [settingsError, setSettingsError] = useState("");
   const [busy, setBusy] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [online, setOnline] = useState(true);
@@ -165,7 +165,8 @@ export default function RecipeStudio() {
   const [search, setSearch] = useState("");
   const [inventoryFilter, setInventoryFilter] = useState("all");
   const [aiConfigured, setAiConfigured] = useState(false);
-  const [authConfigured, setAuthConfigured] = useState(false);
+  const [aiProvider, setAIProvider] = useState<AIProvider>("openai");
+  const [brewfatherConfigured, setBrewfatherConfigured] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
   const importInput = useRef<HTMLInputElement>(null);
@@ -181,8 +182,9 @@ export default function RecipeStudio() {
         const session = await api("/api/session");
         if (cancelled) return;
         setUser(session.user);
-        setAuthConfigured(session.configured);
         setAiConfigured(session.aiConfigured);
+        setAIProvider(session.aiProvider ?? "openai");
+        setBrewfatherConfigured(session.brewfatherConfigured === true);
         await useBrewStore.persist.rehydrate();
         if (cancelled) return;
         const current = useBrewStore.getState();
@@ -201,8 +203,10 @@ export default function RecipeStudio() {
             current.setSuppliers(supplierSchema.array().parse(data.suppliers));
           if (data.recipes?.length) {
             const cloudRecipes = data.recipes.filter(
-              (item: { recipe: unknown }) =>
-                recipeSchema.safeParse(item.recipe).success,
+              (item: { recipe: unknown }) => {
+                const parsed = recipeSchema.safeParse(item.recipe);
+                return parsed.success && !isLegacyDemoRecipe(parsed.data);
+              },
             );
             useBrewStore.setState((state) => ({
               savedRecipes: [
@@ -341,6 +345,18 @@ export default function RecipeStudio() {
       );
     }
   }
+  async function syncInventory() {
+    setBusy(true);
+    try {
+      const result = await api("/api/brewfather/sync", "POST");
+      store.setInventory(inventorySchema.parse(result.inventory), "brewfather");
+      setToast(`Synced ${result.inventory.length} inventory items from Brewfather.`);
+    } catch (cause) {
+      setToast(cause instanceof Error ? cause.message : "Brewfather sync failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function refreshSupplier(supplierId: string) {
     try {
       const result = await api("/api/suppliers/refresh", "POST", {
@@ -366,7 +382,7 @@ export default function RecipeStudio() {
     }
   }
   async function sendPrompt(text = prompt) {
-    if (!text.trim() || busy) return;
+    if (!text.trim() || busy || !aiConfigured || !online) return;
     const messages = [
       ...store.messages.map(({ role, content }) => ({ role, content })),
       { role: "user" as const, content: text.trim() },
@@ -468,8 +484,8 @@ export default function RecipeStudio() {
   const hopFactor = units === "imperial" ? 0.035274 : 1;
   const grainUnit = units === "imperial" ? "lb" : "kg";
   const hopUnit = units === "imperial" ? "oz" : "g";
-  const isSample = store.inventorySource === "sample";
-  const filteredInventory = inventory.filter(
+  const inStockInventory = inventory.filter((item) => item.quantity > 0);
+  const filteredInventory = inStockInventory.filter(
     (item) =>
       item.name.toLowerCase().includes(search.toLowerCase()) &&
       (inventoryFilter === "all" || item.kind === inventoryFilter),
@@ -479,11 +495,7 @@ export default function RecipeStudio() {
       ? "Add fermentable"
       : modal === "hop"
         ? "Add hop addition"
-        : modal === "sync"
-          ? "Connect Brewfather"
-          : modal === "equipment"
-            ? "Recipe & equipment"
-            : modal === "export"
+        : modal === "export"
               ? "Export recipe"
               : modal === "supplier"
                 ? "Add stockist"
@@ -495,15 +507,16 @@ export default function RecipeStudio() {
                       ? "BrewLab.ai / About"
                       : "Your brewing account";
 
-  async function handleForm(event: FormEvent<HTMLFormElement>) {
+  async function handleForm(event: FormEvent<HTMLFormElement>, formType: Modal | "equipment" = modal) {
     event.preventDefault();
-    setError("");
+    if (formType === "equipment") setSettingsError("");
+    else setError("");
     setBusy(true);
     const data = new FormData(event.currentTarget);
     const text = (key: string) => String(data.get(key) ?? "");
     const numeric = (key: string) => Number(data.get(key));
     try {
-      if (modal === "grain") {
+      if (formType === "grain") {
         const grain = grainCatalog.find((item) => item.name === text("name"))!;
         store.updateRecipe({
           grains: [
@@ -511,7 +524,7 @@ export default function RecipeStudio() {
             { ...grain, id: id(), kg: numeric("quantity") / weightFactor },
           ],
         });
-      } else if (modal === "hop") {
+      } else if (formType === "hop") {
         const hop = hopCatalog.find((item) => item.name === text("name"))!;
         store.updateRecipe({
           hops: [
@@ -526,9 +539,9 @@ export default function RecipeStudio() {
             },
           ],
         });
-      } else if (modal === "equipment") {
+      } else if (formType === "equipment") {
         store.setRecipe(
-          recipeSchema.parse({
+          recipeDraftSchema.parse({
             ...recipe,
             name: text("name"),
             style: text("style"),
@@ -546,7 +559,7 @@ export default function RecipeStudio() {
             },
           }),
         );
-      } else if (modal === "inventory") {
+      } else if (formType === "inventory") {
         const kind = text("kind") as InventoryItem["kind"];
         const unit = kind === "grain" ? "kg" : kind === "yeast" ? "pack" : "g";
         store.setInventory(
@@ -562,7 +575,7 @@ export default function RecipeStudio() {
           ]),
           "manual",
         );
-      } else if (modal === "supplier") {
+      } else if (formType === "supplier") {
         const supplier = supplierSchema.parse({
           id: id(),
           name: text("name"),
@@ -573,25 +586,13 @@ export default function RecipeStudio() {
         });
         if (user) await api("/api/suppliers", "POST", supplier);
         store.setSuppliers([...suppliers, supplier]);
-      } else if (modal === "sync") {
-        const result = await api("/api/brewfather/sync", "POST", {
-          userId: text("userId"),
-          apiKey: text("apiKey"),
-          version: text("version"),
-        });
-        store.setInventory(
-          inventorySchema.parse(result.inventory),
-          "brewfather",
-        );
-        setToast(
-          `Synced ${result.inventory.length} inventory items from Brewfather.`,
-        );
       }
-      setModal(null);
+      if (formType === "equipment") setToast("Recipe and equipment settings updated.");
+      else setModal(null);
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Please check your inputs.",
-      );
+      const message = cause instanceof Error ? cause.message : "Please check your inputs.";
+      if (formType === "equipment") setSettingsError(message);
+      else setError(message);
     } finally {
       setBusy(false);
     }
@@ -645,9 +646,10 @@ export default function RecipeStudio() {
               {dark ? <Sun size={16} /> : <Moon size={16} />}
             </UI.IconButton>
             <UI.IconButton
-              onClick={() => openModal("login")}
-              aria-label="Account"
-              title={user?.email || "Sign in"}
+              as={Link}
+              href="/profile"
+              aria-label="Your profile"
+              title="Your profile"
             >
               <UI.Avatar>
                 {user ? (
@@ -670,12 +672,11 @@ export default function RecipeStudio() {
                 <ChevronRight size={10} /> DRAFT
               </UI.Eyebrow>
               <UI.Row $gap={12} $wrap>
-                <h1>{recipe.name}</h1>
+                <h1>{recipe.name || "Recipe Studio"}</h1>
                 <UI.Badge $tone="accent">ALL GRAIN</UI.Badge>
               </UI.Row>
               <UI.Subtitle>
-                <span>{recipe.style}</span>
-                <span>·</span>
+                {recipe.style && <><span>{recipe.style}</span><span>·</span></>}
                 <span>
                   {(
                     recipe.batchLiters / (units === "imperial" ? 3.78541 : 1)
@@ -691,23 +692,106 @@ export default function RecipeStudio() {
               </UI.Subtitle>
             </div>
             <UI.Row $gap={8} $wrap>
-              <UI.IconButton
-                onClick={() => openModal("equipment")}
-                title="Recipe and equipment settings"
-                aria-label="Recipe and equipment settings"
-              >
-                <Settings2 size={17} />
-              </UI.IconButton>
               <UI.Button onClick={() => openModal("export")}>
                 <ArrowDownToLine size={14} />
                 Export
               </UI.Button>
-              <UI.Button $primary onClick={saveRecipe}>
+              <UI.Button
+                $primary
+                onClick={saveRecipe}
+                disabled={!recipeSchema.safeParse(recipe).success}
+                title="Save a recipe with a name, style, yeast, and at least one fermentable"
+              >
                 <Save size={14} />
                 Save recipe
               </UI.Button>
             </UI.Row>
           </UI.Identity>
+
+          <UI.RecipeSettings id="recipe-settings" aria-labelledby="recipe-settings-title">
+            <UI.Width>
+              <form
+                key={JSON.stringify([
+                  units, recipe.name, recipe.style, recipe.batchLiters,
+                  recipe.efficiency, recipe.mashTunLiters, recipe.boilOff,
+                  recipe.boilMinutes, recipe.water.calcium,
+                  recipe.water.sulfate, recipe.water.chloride,
+                ])}
+                onSubmit={(event) => handleForm(event, "equipment")}
+              >
+                <UI.Row $between $wrap>
+                  <UI.Row $gap={8}>
+                    <Settings2 size={16} />
+                    <h2 id="recipe-settings-title" style={{ fontSize: 13 }}>
+                      Recipe & equipment settings
+                    </h2>
+                  </UI.Row>
+                  <UI.Button type="submit" $primary disabled={busy}>
+                    <Check size={14} />
+                    Apply settings
+                  </UI.Button>
+                </UI.Row>
+                <UI.SettingsFields>
+                  <UI.Field>
+                    Recipe name
+                    <input name="name" maxLength={160} placeholder="Recipe name" defaultValue={recipe.name} />
+                  </UI.Field>
+                  <UI.Field>
+                    BJCP style
+                    <input
+                      name="style"
+                      list="bjcp-beer-styles"
+                      defaultValue={recipe.style}
+                      placeholder="Search by style name or code"
+                      maxLength={160}
+                      autoComplete="off"
+                    />
+                    <datalist id="bjcp-beer-styles">
+                      {[
+                        ...new Set([
+                          recipe.style,
+                          ...bjcpBeerStyles.map((style) => style.label),
+                        ]),
+                      ].filter(Boolean).map((style) => (
+                        <option key={style} value={style} />
+                      ))}
+                    </datalist>
+                  </UI.Field>
+                  {[
+                    {
+                      name: "volume",
+                      label: `Batch volume (${units === "imperial" ? "gal" : "L"})`,
+                      value: recipe.batchLiters / (units === "imperial" ? 3.78541 : 1),
+                      min: 1,
+                      max: 1000,
+                    },
+                    { name: "efficiency", label: "Efficiency (%)", value: recipe.efficiency, min: 1, max: 100 },
+                    { name: "mashTun", label: "Mash tun volume (L)", value: recipe.mashTunLiters, min: 1, max: 2000 },
+                    { name: "boilOff", label: "Boil-off rate (L/hr)", value: recipe.boilOff, min: 0, max: 20 },
+                    { name: "boilMinutes", label: "Boil duration (min)", value: recipe.boilMinutes, min: 0, max: 180 },
+                    { name: "calcium", label: "Source water Ca (ppm)", value: recipe.water.calcium, min: 0, max: 500 },
+                    { name: "sulfate", label: "Source water SO₄ (ppm)", value: recipe.water.sulfate, min: 0, max: 1000 },
+                    { name: "chloride", label: "Source water Cl (ppm)", value: recipe.water.chloride, min: 0, max: 1000 },
+                  ].map((field) => (
+                    <UI.Field key={field.name}>
+                      {field.label}
+                      <input
+                        id={`recipe-setting-${field.name}`}
+                        name={field.name}
+                        required
+                        type="number"
+                        min={field.min}
+                        max={field.max}
+                        step="any"
+                        defaultValue={Number(field.value.toFixed(2))}
+                      />
+                    </UI.Field>
+                  ))}
+                </UI.SettingsFields>
+                {settingsError && <UI.ErrorText role="alert">{settingsError}</UI.ErrorText>}
+              </form>
+            </UI.Width>
+          </UI.RecipeSettings>
 
           <UI.MetricBand>
             <UI.Metrics aria-label="Live brewing metrics" aria-live="polite">
@@ -774,11 +858,9 @@ export default function RecipeStudio() {
               <UI.Row $gap={8}>
                 <UI.Eyebrow>FORMULATION WORKBENCH</UI.Eyebrow>
                 <UI.Badge>
-                  {isSample
-                    ? "Sample cellar"
-                    : store.inventorySource === "brewfather"
-                      ? "Brewfather cellar"
-                      : "Local cellar"}
+                  {store.inventorySource === "brewfather"
+                    ? "Brewfather cellar"
+                    : "Local cellar"}
                 </UI.Badge>
               </UI.Row>
               <UI.Row $gap={12}>
@@ -844,17 +926,11 @@ export default function RecipeStudio() {
                   </UI.AssistantHead>
                   <UI.AssistantBody>
                     <UI.AssistantIntro>
-                      <UI.Eyebrow>RECIPE NOTES / 001</UI.Eyebrow>
-                      <h3>
-                        Citra, Mosaic,
-                        <br />
-                        and a softer finish.
-                      </h3>
-                      <p>
-                        A tropical hop pairing with a pillowy oat backbone.
-                        Here’s where your current formulation stands.
-                      </p>
+                      <UI.Eyebrow>RECIPE NOTES</UI.Eyebrow>
+                      <h3>{recipe.name || "No recipe yet"}</h3>
+                      {recipe.style && <p>{recipe.style}</p>}
                     </UI.AssistantIntro>
+                    {requirements.length > 0 && <>
                     <UI.Insight>
                       <h3>
                         <Package size={14} color="#35745a" />
@@ -884,8 +960,7 @@ export default function RecipeStudio() {
                             {sourcing.missing
                               .map((item) => item.name)
                               .join(" and ")}{" "}
-                            are short in your {isSample ? "sample" : "current"}{" "}
-                            cellar.
+                            are short in your cellar.
                           </>
                         ) : (
                           <strong>Everything is already in your cellar.</strong>
@@ -946,6 +1021,7 @@ export default function RecipeStudio() {
                         </p>
                       )}
                     </UI.Insight>
+                    </>}
                     {store.messages.map((message) => (
                       <UI.Message
                         key={message.id}
@@ -991,7 +1067,7 @@ export default function RecipeStudio() {
                   >
                     <textarea
                       aria-label="Message to AI co-brewer"
-                      placeholder="A little more tropical. A little less bitter…"
+                      placeholder="Describe your recipe..."
                       value={prompt}
                       maxLength={4000}
                       onChange={(event) => setPrompt(event.target.value)}
@@ -1007,14 +1083,14 @@ export default function RecipeStudio() {
                         {!user
                           ? "Sign in to connect your co-brewer"
                           : !aiConfigured
-                            ? "AI provider not configured"
-                            : "OpenAI · recipe tools"}
+                            ? <Link href="/profile#ai">Add an AI key in your profile</Link>
+                            : `${aiProviders[aiProvider].label} · recipe tools`}
                       </UI.Mono>
                       <UI.Button
                         $small
                         $primary
                         type="submit"
-                        disabled={busy || !prompt.trim() || !online}
+                        disabled={busy || !prompt.trim() || !online || !aiConfigured}
                         aria-label="Send message"
                         title="Send message"
                       >
@@ -1124,7 +1200,6 @@ export default function RecipeStudio() {
                               <UI.IconButton
                                 aria-label={`Remove ${grain.name}`}
                                 title={`Remove ${grain.name}`}
-                                disabled={recipe.grains.length <= 1}
                                 onClick={() =>
                                   store.updateRecipe({
                                     grains: recipe.grains.filter(
@@ -1141,6 +1216,16 @@ export default function RecipeStudio() {
                       </tbody>
                     </UI.Table>
                   </UI.TableScroll>
+                  {!recipe.grains.length && (
+                    <UI.Empty>
+                      <Wheat size={25} />
+                      <h3>No fermentables</h3>
+                      <UI.Button $small onClick={() => openModal("grain")}>
+                        <Plus size={13} />
+                        Add grain
+                      </UI.Button>
+                    </UI.Empty>
+                  )}
                   <UI.SectionFoot>
                     <span>
                       ALL GRAIN · {recipe.efficiency}% BREWHOUSE EFFICIENCY
@@ -1318,11 +1403,12 @@ export default function RecipeStudio() {
                             });
                           }}
                         >
+                          <option value="">Select yeast</option>
                           <option>London Ale III</option>
                           <option>US-05</option>
                           <option>Lutra Kveik</option>
                           <option>W-34/70</option>
-                          {![
+                          {recipe.yeast && ![
                             "London Ale III",
                             "US-05",
                             "Lutra Kveik",
@@ -1430,7 +1516,7 @@ export default function RecipeStudio() {
                         style={{ height: 18, width: 20 }}
                         aria-label="Edit source water"
                         title="Edit source water"
-                        onClick={() => openModal("equipment")}
+                        onClick={() => document.getElementById("recipe-setting-calcium")?.focus()}
                       >
                         <Settings2 size={12} />
                       </UI.IconButton>
@@ -1521,7 +1607,7 @@ export default function RecipeStudio() {
                   </h1>
                   <p>
                     {view === "inventory"
-                      ? `${inventory.length} ingredients · ${isSample ? "Sample inventory" : store.inventorySource === "brewfather" ? "Brewfather inventory" : "Local inventory"}`
+                      ? `${inStockInventory.length} ingredients · ${store.inventorySource === "brewfather" ? "Brewfather inventory" : "Local inventory"}`
                       : view === "sourcing"
                         ? `${suppliers.length} saved stockists · Catalog prices, not live quotes`
                         : `${store.savedRecipes.length} locally saved recipes`}
@@ -1537,10 +1623,15 @@ export default function RecipeStudio() {
                         <Plus size={14} />
                         Add ingredient
                       </UI.Button>
-                      <UI.Button $primary onClick={() => openModal("sync")}>
-                        <RefreshCw size={14} />
-                        Sync Brewfather
-                      </UI.Button>
+                      {brewfatherConfigured ? (
+                        <UI.Button $primary onClick={syncInventory} disabled={busy || !online}>
+                          <RefreshCw size={14} />Sync Brewfather
+                        </UI.Button>
+                      ) : (
+                        <UI.Button as={Link} href="/profile#brewfather" $primary>
+                          <Settings2 size={14} />Connect Brewfather
+                        </UI.Button>
+                      )}
                     </>
                   ) : view === "sourcing" ? (
                     <UI.Button $primary onClick={() => openModal("supplier")}>
@@ -1556,12 +1647,8 @@ export default function RecipeStudio() {
                       <UI.Button
                         $primary
                         onClick={() => {
-                          store.setRecipe({
-                            ...recipe,
-                            name: "Untitled recipe",
-                            grains: [{ id: id(), name: "Pilsner Malt", kg: 4.5, color: 1.7, ppg: 37 }],
-                            hops: [],
-                          });
+                          store.startNewRecipe();
+                          setPrevious(null);
                           setView("studio");
                         }}
                       >
@@ -1889,7 +1976,7 @@ export default function RecipeStudio() {
               <span>BrewLab.ai / MADE FOR THE NEXT GOOD BATCH.</span>
             </UI.Row>
             <UI.Row $gap={14}>
-              <span>{isSample ? "SAMPLE DATA" : "PERSONAL WORKSPACE"}</span>
+              <span>PERSONAL WORKSPACE</span>
               <UI.IconButton
                 style={{ width: 22, height: 22 }}
                 aria-label="About BrewLab.ai"
@@ -1913,7 +2000,7 @@ export default function RecipeStudio() {
           try {
             if (file.size > 100000)
               throw new Error("Recipe files must be smaller than 100 KB.");
-            const recipe = recipeSchema.parse(JSON.parse(await file.text()));
+            const recipe = recipeDraftSchema.parse(JSON.parse(await file.text()));
             applyRecipe(recipe);
             setView("studio");
           } catch {
@@ -2017,116 +2104,6 @@ export default function RecipeStudio() {
               </UI.Button>
             </form>
           )}
-          {modal === "equipment" && (
-            <form onSubmit={handleForm}>
-              <UI.Field>
-                Recipe name
-                <input
-                  name="name"
-                  required
-                  maxLength={160}
-                  defaultValue={recipe.name}
-                />
-              </UI.Field>
-              <UI.Field>
-                BJCP style
-                <select name="style" defaultValue={recipe.style}>
-                  {[
-                    ...new Set([
-                      recipe.style,
-                      "21C · Hazy IPA",
-                      "22A · Double IPA",
-                      "21A · American IPA",
-                      "3D · Czech Dark Lager",
-                      "1D · American Wheat Beer",
-                      "20B · American Stout",
-                      "5D · German Pils",
-                    ]),
-                  ].map((style) => (
-                    <option key={style}>{style}</option>
-                  ))}
-                </select>
-              </UI.Field>
-              <UI.Fields style={{ padding: 0 }}>
-                {[
-                  {
-                    name: "volume",
-                    label: `Batch volume (${units === "imperial" ? "gal" : "L"})`,
-                    value:
-                      recipe.batchLiters / (units === "imperial" ? 3.78541 : 1),
-                    min: 1,
-                    max: 1000,
-                  },
-                  {
-                    name: "efficiency",
-                    label: "Efficiency (%)",
-                    value: recipe.efficiency,
-                    min: 1,
-                    max: 100,
-                  },
-                  {
-                    name: "mashTun",
-                    label: "Mash tun volume (L)",
-                    value: recipe.mashTunLiters,
-                    min: 1,
-                    max: 2000,
-                  },
-                  {
-                    name: "boilOff",
-                    label: "Boil-off rate (L/hr)",
-                    value: recipe.boilOff,
-                    min: 0,
-                    max: 20,
-                  },
-                  {
-                    name: "boilMinutes",
-                    label: "Boil duration (min)",
-                    value: recipe.boilMinutes,
-                    min: 0,
-                    max: 180,
-                  },
-                  {
-                    name: "calcium",
-                    label: "Source water Ca (ppm)",
-                    value: recipe.water.calcium,
-                    min: 0,
-                    max: 500,
-                  },
-                  {
-                    name: "sulfate",
-                    label: "Source water SO₄ (ppm)",
-                    value: recipe.water.sulfate,
-                    min: 0,
-                    max: 1000,
-                  },
-                  {
-                    name: "chloride",
-                    label: "Source water Cl (ppm)",
-                    value: recipe.water.chloride,
-                    min: 0,
-                    max: 1000,
-                  },
-                ].map((field) => (
-                  <UI.Field key={field.name}>
-                    {field.label}
-                    <input
-                      name={field.name}
-                      required
-                      type="number"
-                      min={field.min}
-                      max={field.max}
-                      step="0.1"
-                      defaultValue={Number(field.value.toFixed(2))}
-                    />
-                  </UI.Field>
-                ))}
-              </UI.Fields>
-              <UI.Button $primary>
-                <Check size={14} />
-                Apply settings
-              </UI.Button>
-            </form>
-          )}
           {modal === "inventory" && (
             <form onSubmit={handleForm}>
               <UI.Field>
@@ -2205,7 +2182,7 @@ export default function RecipeStudio() {
                     min="0"
                     max="1000"
                     step="0.01"
-                    defaultValue="5.99"
+                    defaultValue="0"
                     required
                   />
                 </UI.Field>
@@ -2215,20 +2192,7 @@ export default function RecipeStudio() {
                 <textarea
                   name="products"
                   required
-                  defaultValue={JSON.stringify(
-                    [
-                      {
-                        ingredient: "Citra",
-                        kind: "hop",
-                        packageSize: 100,
-                        price: 7.25,
-                        stock: 10,
-                        substitutes: [],
-                      },
-                    ],
-                    null,
-                    2,
-                  )}
+                  defaultValue="[]"
                 />
               </UI.Field>
               <UI.Button $primary disabled={busy}>
@@ -2236,105 +2200,6 @@ export default function RecipeStudio() {
                 Save stockist
               </UI.Button>
             </form>
-          )}
-          {modal === "sync" && (
-            <form onSubmit={handleForm}>
-              <UI.Badge $tone={user ? "green" : "accent"}>
-                {user ? "Account connected" : "Google sign-in required"}
-              </UI.Badge>
-              <UI.Field>
-                Brewfather user ID
-                <input
-                  name="userId"
-                  required
-                  autoComplete="off"
-                  maxLength={160}
-                />
-              </UI.Field>
-              <UI.Field>
-                Brewfather API key
-                <input
-                  name="apiKey"
-                  type="password"
-                  required
-                  autoComplete="off"
-                  maxLength={256}
-                />
-              </UI.Field>
-              <UI.Field>
-                API version
-                <select name="version" defaultValue="v1">
-                  <option value="v1">v1 (legacy)</option>
-                  <option value="v2">v2 (recommended)</option>
-                </select>
-              </UI.Field>
-              <UI.Button $primary disabled={busy || !user || !online}>
-                {busy ? <LoaderCircle size={14} /> : <RefreshCw size={14} />}
-                Sync inventory
-              </UI.Button>
-              {!user && (
-                <UI.Button type="button" onClick={() => openModal("login")}>
-                  <LogIn size={14} />
-                  Sign in
-                </UI.Button>
-              )}
-            </form>
-          )}
-          {modal === "login" && (
-            <div style={{ display: "grid", gap: 20 }}>
-              <UI.Mark style={{ width: 46, height: 46 }}>
-                <Wheat size={28} />
-              </UI.Mark>
-              <h3 style={{ fontSize: 21 }}>
-                {user
-                  ? "Welcome to BrewLab.ai."
-                  : "Good beer. Your recipes."}
-              </h3>
-              {user ? (
-                <>
-                  <p>{user.email}</p>
-                  <UI.Button
-                    onClick={async () => {
-                      try {
-                        await api("/api/auth/signout", "POST");
-                        store.clearAccountData(null);
-                        setUser(null);
-                        setModal(null);
-                        setToast(
-                          "Signed out. Account data cleared from this device.",
-                        );
-                      } catch (cause) {
-                        setError(
-                          cause instanceof Error
-                            ? cause.message
-                            : "Sign-out failed.",
-                        );
-                      }
-                    }}
-                  >
-                    <LogOut size={14} />
-                    Sign out
-                  </UI.Button>
-                </>
-              ) : (
-                <>
-                  <UI.Button
-                    as="a"
-                    $primary
-                    href={authConfigured && online ? "/auth/login" : undefined}
-                    aria-disabled={!authConfigured || !online}
-                  >
-                    <LogIn size={15} />
-                    Continue with Google
-                  </UI.Button>
-                  {!authConfigured && (
-                    <UI.Badge $tone="accent">
-                      Supabase is not configured
-                    </UI.Badge>
-                  )}
-                </>
-              )}
-            </div>
           )}
           {modal === "export" && (
             <div style={{ display: "grid", gap: 12 }}>
@@ -2460,8 +2325,8 @@ export default function RecipeStudio() {
               </p>
               <p>
                 Source water values and salt additions are concentration
-                estimates, not a mash pH prediction. Starter inventory and
-                stockist prices are sample data.
+                estimates, not a mash pH prediction. Catalog prices and
+                availability are supplied by your saved stockists.
               </p>
               <UI.Button
                 onClick={() => {
