@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyRecipe, initialRecipe, sampleInventory, sampleSuppliers } from "./seed";
-import { aiRequestSchema, recipeDraftSchema, recipeSchema } from "./schemas";
+import { aiRequestSchema, recipeDraftSchema, recipeSchema, supplierSchema } from "./schemas";
 import { requirementsFor } from "./optimizer";
 import { calculateRecipe } from "./calculations";
 import { useBrewStore } from "./store";
@@ -21,6 +21,16 @@ describe("recipe drafts", () => {
     expect(stats.og).toBe(1);
     expect(stats.abv).toBe(0);
     expect(stats.ibu).toBe(0);
+  });
+
+  it("supports ZAR stockists, defaults to ZAR, and preserves other currencies", () => {
+    const stockist = { id: "personal-stockist", name: "My stockist", url: "https://example.com", shipping: 0, products: [] };
+    expect(supplierSchema.parse(stockist).currency).toBe("ZAR");
+    expect(supplierSchema.parse({ ...stockist, currency: "ZAR" }).currency).toBe("ZAR");
+    expect(supplierSchema.parse({ ...stockist, currency: "GBP" }).currency).toBe("GBP");
+    const merge = useBrewStore.persist.getOptions().merge!;
+    const restored = merge({ suppliers: [{ ...stockist, currency: "ZAR" }] }, useBrewStore.getState());
+    expect(restored.suppliers[0].currency).toBe("ZAR");
   });
 
   it("starts a fresh draft without carrying over ingredients or conversation", () => {

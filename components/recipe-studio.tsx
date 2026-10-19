@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -63,7 +66,7 @@ type Modal =
   | "cart"
   | "help"
   | null;
-const money = (value: number, currency = "GBP") =>
+const money = (value: number, currency = "ZAR") =>
   new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(value);
 const id = () => crypto.randomUUID();
 
@@ -1035,7 +1038,27 @@ export default function RecipeStudio() {
                           )}
                           {message.role === "user" ? "YOU" : "CO-BREWER"}
                         </h4>
-                        <p>{message.content}</p>
+                        {message.role === "assistant" ? (
+                          <UI.ReplyBody>
+                            <Markdown
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
+                              skipHtml
+                              disallowedElements={["img"]}
+                              components={{
+                                h1: ({ children }) => <h3>{children}</h3>,
+                                h2: ({ children }) => <h3>{children}</h3>,
+                                a: ({ href, children }) => (
+                                  <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+                                ),
+                                table: ({ children }) => (
+                                  <div className="reply-table"><table>{children}</table></div>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </Markdown>
+                          </UI.ReplyBody>
+                        ) : <p>{message.content}</p>}
                         {message.proposal && (
                           <UI.Button
                             $small
@@ -2166,8 +2189,8 @@ export default function RecipeStudio() {
               <UI.Fields style={{ padding: 0 }}>
                 <UI.Field>
                   Currency
-                  <select name="currency">
-                    {["GBP", "USD", "EUR", "AUD", "NZD", "CAD"].map(
+                  <select name="currency" defaultValue="ZAR">
+                    {supplierSchema.shape.currency.unwrap().options.map(
                       (currency) => (
                         <option key={currency}>{currency}</option>
                       ),

@@ -108,6 +108,8 @@ Choose the AI provider and model in Your profile and save your own API key. Goog
 
 [lib/ai.ts](lib/ai.ts) contains the inventory-first system prompt and the `get_inventory`, `evaluate_recipe`, and `propose_recipe` tools. The first call must read the signed-in user's inventory and supplier catalogs. Zod schemas validate tool inputs and every returned recipe. Server-side calculations and sourcing results are authoritative; model-supplied metrics are not trusted. Changes remain proposals until the user clicks Apply. Thirty requests per user per hour and five tool rounds per request bound usage.
 
+Gemini receives simplified tool schemas to avoid Google's schema-complexity rejection; the original strict Zod constraints still validate every tool input and final proposal on the server. Gemini 3/4 uses low reasoning effort, and the complete tool workflow has a two-minute timeout. Provider errors distinguish invalid credentials, unavailable models, rejected requests, usage limits, outages, and timeouts without exposing raw provider responses or keys.
+
 ## Stockists & Single-Supplier Sourcing
 
 No stockists, product prices, or inventory are preloaded. Add your own stockists and import their product catalog through the stockist form. Package sizes use kg for grains, grams for hops/salts, and packs for yeast. Stock is the number of available packages. Ingredient selectors contain reference brewing properties, not owned inventory or supplier stock.
@@ -143,6 +145,17 @@ BJCP style suggestions use the official [2021 beer guidelines](https://www.bjcp.
 ## Cloudflare Deployment
 
 Deploy this full-stack Next.js application to **Cloudflare Workers**, not a static Cloudflare Pages project. OpenNext runs its server routes and D1 bindings on Workers.
+
+For a Git-connected Worker, set these commands in Cloudflare's **Settings > Build** configuration:
+
+| Setting | Command |
+| --- | --- |
+| Build command | `npm run cf:build` |
+| Deploy command | `npm run cf:deploy` |
+
+Set the root directory to the folder containing this project's `package.json`. The regular `npm run build` only produces Next.js output in `.next`; it does not create the `.open-next` Worker bundle or compiled adapter configuration. Using it before `wrangler deploy` causes `Could not find compiled Open Next config`. Save both dashboard commands and retry the deployment.
+
+For local command-line deployment, `npm run deploy` still builds and deploys in one command. Do not use that combined command after `npm run cf:build` in the dashboard unless you intend to build twice.
 
 Create a D1 database:
 

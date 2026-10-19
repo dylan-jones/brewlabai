@@ -66,7 +66,7 @@ export const supplierSchema = z.object({
       "Use an HTTPS supplier URL",
     ),
   shipping: number(0, 1000),
-  currency: z.enum(["GBP", "USD", "EUR", "AUD", "NZD", "CAD"]),
+  currency: z.enum(["ZAR", "GBP", "USD", "EUR", "AUD", "NZD", "CAD"]).default("ZAR"),
   products: z
     .array(
       z.object({

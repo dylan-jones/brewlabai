@@ -12,8 +12,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "brew-lab",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "brewlab",
+      "database_id": "1fd9c786-b64f-4c52-a459-63b53ab54407",
       "migrations_dir": "migrations",
     },
   ],

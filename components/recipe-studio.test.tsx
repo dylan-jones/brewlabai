@@ -88,4 +88,44 @@ describe("inline recipe settings", () => {
       expect.objectContaining({ code: "34C", name: "Experimental Beer" }),
     ]));
   });
+
+  it("formats co-brewer headings, lists, emphasis, and inline code", () => {
+    useBrewStore.getState().addMessage({
+      id: "formatted", role: "assistant",
+      content: "## Grain bill\n\nUse **Golden Promise** and *oats*.\n\n- Mash at 67 C\n- Boil for 60 minutes\n\n1. Cool\n2. Pitch yeast\n\nBatch size: `20 L`.",
+    });
+    const markup = renderStudio();
+    expect(markup).toContain("<h3>Grain bill</h3>");
+    expect(markup).toContain("<strong>Golden Promise</strong>");
+    expect(markup).toContain("<em>oats</em>");
+    expect(markup).toContain("<ul>");
+    expect(markup).toContain("<ol>");
+    expect(markup).toContain("<code>20 L</code>");
+  });
+
+  it("renders assistant tables and line breaks without formatting user messages", () => {
+    useBrewStore.getState().addMessage({ id: "user", role: "user", content: "**Keep my message literal**" });
+    useBrewStore.getState().addMessage({
+      id: "table", role: "assistant",
+      content: "Mash\nThen boil\n\n| Ingredient | Amount |\n| --- | --- |\n| Malt | 5 kg |",
+    });
+    const markup = renderStudio();
+    expect(markup).toContain("**Keep my message literal**");
+    expect(markup).not.toContain("<strong>Keep my message literal</strong>");
+    expect(markup).toContain("<br/>");
+    expect(markup).toContain('<div class="reply-table"><table>');
+    expect(markup).toContain("<td>5 kg</td>");
+  });
+
+  it("blocks raw HTML, unsafe links, and remote images in assistant replies", () => {
+    useBrewStore.getState().addMessage({
+      id: "untrusted", role: "assistant",
+      content: '<script>alert("unsafe")</script>\n\n[Unsafe](javascript:alert(1))\n\n![Pixel](https://tracker.invalid/pixel.png)\n\n[Docs](https://docs.brewfather.app/api)',
+    });
+    const markup = renderStudio();
+    expect(markup).not.toContain("<script");
+    expect(markup).not.toContain("javascript:");
+    expect(markup).not.toContain("https://tracker.invalid/pixel.png");
+    expect(markup).toContain('href="https://docs.brewfather.app/api" target="_blank" rel="noopener noreferrer"');
+  });
 });

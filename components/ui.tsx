@@ -406,6 +406,44 @@ export const Message = styled.div<{ $user?: boolean }>`
     overflow-wrap: anywhere;
   }
 `;
+export const ReplyBody = styled.div`
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  > :first-child { margin-top: 0; }
+  > :last-child { margin-bottom: 0; }
+  p { margin: 0 0 10px; white-space: normal; }
+  h3, h4, h5, h6 {
+    display: block;
+    font: 700 12px ${({ theme }) => theme.fonts.sans};
+    color: ${({ theme }) => theme.colors.ink};
+    margin: 16px 0 6px;
+    line-height: 1.5;
+  }
+  strong { font-weight: 700; color: ${({ theme }) => theme.colors.ink}; }
+  ul, ol { padding-left: 20px; margin: 8px 0 12px; }
+  li { padding-left: 2px; margin: 4px 0; }
+  li > p { margin-bottom: 4px; }
+  ul ul, ol ol, ul ol, ol ul { margin: 4px 0; }
+  a { color: ${({ theme }) => theme.colors.accent}; text-decoration: underline; text-underline-offset: 3px; }
+  blockquote {
+    margin: 12px 0;
+    padding: 2px 0 2px 12px;
+    border-left: 2px solid ${({ theme }) => theme.colors.accent};
+    color: ${({ theme }) => theme.colors.muted};
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+  code { font: 11px ${({ theme }) => theme.fonts.mono}; background: ${({ theme }) => theme.colors.elevated}; padding: 2px 4px; border-radius: 3px; }
+  pre { max-width: 100%; overflow-x: auto; margin: 12px 0; padding: 12px; background: ${({ theme }) => theme.colors.elevated}; border-radius: 4px; }
+  pre code { padding: 0; white-space: pre; overflow-wrap: normal; }
+  .reply-table { max-width: 100%; overflow-x: auto; margin: 12px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 7px 9px; text-align: left; border-bottom: 1px solid ${({ theme }) => theme.colors.border}; vertical-align: top; }
+  th { font-weight: 700; background: ${({ theme }) => theme.colors.elevated}; }
+  hr { border: 0; border-top: 1px solid ${({ theme }) => theme.colors.border}; margin: 14px 0; }
+  input[type="checkbox"] { width: 12px; height: 12px; margin-right: 5px; vertical-align: middle; }
+`;
 export const Composer = styled.form`
   border-top: 1px solid ${({ theme }) => theme.colors.border};
   padding: 14px 16px;
