@@ -1,0 +1,53 @@
+{
+  "name": "brew-lab",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "patch-package",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "cf:build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+  },
+  "dependencies": {
+    "@ducanh2912/next-pwa": "latest",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@opennextjs/cloudflare": "latest",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "brewcalc": "0.1.6",
+    "idb-keyval": "^6.2.2",
+    "lucide-react": "latest",
+    "next": "^16.4.2",
+    "openai": "latest",
+    "patch-package": "^8.0.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "styled-components": "^6.1.19",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
+  },
+  "overrides": {
+    "@node-minify/core": {
+      "glob": "^10.5.0"
+    },
+    "flatted": "^3.4.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16.4.2",
+    "typescript": "^5.9.3",
+    "vitest": "latest",
+    "wrangler": "latest"
+  }
+}

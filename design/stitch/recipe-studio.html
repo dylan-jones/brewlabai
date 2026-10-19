@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="web_standard" name="shell-type"/>
+<title>Lupulin Craft Studio — Kontor &amp; Precision Brew Lab</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #f8fafc;
+        color: #0f172a;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      body {
+        overscroll-behavior: none;
+      }
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+      font-feature-settings: 'tnum' on, 'zero' on;
+    }
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 2px;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            copper: {
+              50: '#fdf6f3',
+              100: '#faeae4',
+              200: '#f6d8cd',
+              500: '#c25e38',
+              600: '#a74d2b',
+              700: '#8b3d20',
+            },
+            spruce: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            },
+            slate: {
+              850: '#141e33',
+            }
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#f8fafc] text-slate-900 antialiased min-h-screen flex flex-col selection:bg-copper-500 selection:text-white">
+<!-- Top Minimalist Scandinavian Bar -->
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+<div class="max-w-[1780px] mx-auto h-14 px-4 sm:px-6 flex items-center justify-between gap-4">
+<!-- Brand & Section Label -->
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-md bg-copper-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+            LP
+          </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5 leading-none">
+<span class="font-bold text-sm tracking-tight text-slate-900 uppercase">Kontor / Brew Lab</span>
+<span class="text-slate-300 font-light">/</span>
+<span class="font-mono text-xs font-medium text-slate-500 uppercase tracking-wider">Vital Protocols</span>
+</div>
+</div>
+</div>
+<div class="h-4 w-px bg-slate-200 hidden md:block"></div>
+<!-- Navigation Tabs -->
+<nav class="hidden md:flex items-center gap-1">
+<a class="px-3 py-1.5 rounded text-xs font-semibold bg-slate-100 text-slate-900 transition-colors" href="#">
+            Recipe Studio
+          </a>
+<a class="px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors" href="#">
+            Inventory &amp; Brewfather Sync
+          </a>
+<a class="px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors" href="#">
+            Single-Supplier Sourcing
+          </a>
+<a class="px-3 py-1.5 rounded text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors" href="#">
+            Equipment Profiles
+          </a>
+</nav>
+</div>
+<!-- Live Hardware Telemetry & Status Badges -->
+<div class="flex items-center gap-2.5">
+<!-- Brewfather Live Sync State -->
+<div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded border border-spruce-100 bg-spruce-50/70 text-spruce-800 font-mono text-[11px]" title="Brewfather Inventory Linked">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-spruce-600 opacity-60"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-spruce-700"></span>
+</span>
+<span class="font-medium">BREWFATHER: SYNCED 4m AGO (48 SKUS)</span>
+</div>
+<!-- Hardware Rig Sync Badge -->
+<div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded border border-slate-200 bg-slate-50 text-slate-700 font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-copper-500">router</span>
+<span class="font-medium">GRAINFATHER G40 • READY</span>
+</div>
+<!-- User profile -->
+<div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+<div class="relative">
+<img alt="Brewer" class="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBq_0o4H13dg-F7aL6TZlq8P6wC_oWTT-PYAsvPeSwstzCVJLVNZYXYUSFIEugiRJOYK77SGgxac7rwCAr4Poix4hKHwfQuvZU-e4NnrLMyFYn56gEp0fY4X1moEO8-wOHmfPk78aAl5VE9Y77SIsXnipR4cgx8b4DcO6_w7UfrsoCZA2r_M0Rd2Dzda5THrMXNQAJppEYPIf6diS2FqxYj6V_msbuFQwRrJA1nuDxpN5XdzF-ZFe06Zw"/>
+<span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-spruce-600 border border-white"></span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Recipe Identity & Sub-header Precision Bar -->
+<div class="border-b border-slate-200/90 bg-white">
+<div class="max-w-[1780px] mx-auto px-4 sm:px-6 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-3">
+<div class="flex items-baseline gap-2">
+<h1 class="text-xl font-bold tracking-tight text-slate-900 uppercase">Citra-Mosaic Hazy DIPA</h1>
+<span class="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold border border-slate-200">v3.2</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-50 border border-slate-200 text-slate-600 text-xs">
+<span class="material-symbols-outlined text-[15px] text-copper-500">sports_bar</span>
+<span class="font-medium">BJCP 21A: New England / Double IPA</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono uppercase tracking-wider font-semibold bg-spruce-50 text-spruce-800 border border-spruce-200">
+<span class="w-1.5 h-1.5 rounded-full bg-spruce-600"></span>
+          Ready to Brew
+        </span>
+</div>
+<!-- Action Cluster -->
+<div class="flex flex-wrap items-center gap-2.5">
+<div class="flex items-center divide-x divide-slate-200 bg-slate-50 rounded border border-slate-200 font-mono text-xs">
+<div class="px-3 py-1.5 flex items-center gap-1.5">
+<span class="text-slate-400">VOL:</span>
+<span class="font-semibold text-slate-900">20.0 L</span>
+</div>
+<div class="px-3 py-1.5 flex items-center gap-1.5">
+<span class="text-slate-400">BOIL:</span>
+<span class="font-semibold text-slate-900">60 MIN</span>
+</div>
+<div class="px-3 py-1.5 flex items-center gap-1.5">
+<span class="text-slate-400">EFF:</span>
+<span class="font-semibold text-spruce-700">74%</span>
+</div>
+</div>
+<button class="bg-copper-500 hover:bg-copper-600 text-white font-mono text-xs font-semibold px-4 py-2 rounded transition-all shadow-sm flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+          PUSH TO G40
+        </button>
+</div>
+</div>
+</div>
+<!-- Telemetry HUD Ribbon Strip (Modern Nordic Minimalist) -->
+<section class="bg-slate-100/70 border-b border-slate-200 py-3">
+<div class="max-w-[1780px] mx-auto px-4 sm:px-6">
+<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+<!-- Original Gravity -->
+<div class="bg-white p-3 rounded border border-slate-200/90 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+<div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+<span class="uppercase tracking-wider">Original Gravity</span>
+<span class="text-spruce-700 font-semibold">100% Target</span>
+</div>
+<div class="mt-1.5 flex items-baseline gap-1.5">
+<span class="font-mono text-2xl font-bold tracking-tight text-slate-900">1.078</span>
+<span class="text-[11px] font-mono text-slate-400">SG (18.8°P)</span>
+</div>
+<div class="w-full bg-slate-100 h-1 rounded-full mt-2 overflow-hidden">
+<div class="bg-spruce-600 h-full rounded-full" style="width: 82%;"></div>
+</div>
+<span class="text-[10px] font-mono text-slate-400 mt-1">Range: 1.076 – 1.082</span>
+</div>
+<!-- Final Gravity -->
+<div class="bg-white p-3 rounded border border-slate-200/90 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+<div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+<span class="uppercase tracking-wider">Final Gravity</span>
+<span class="text-slate-600 font-semibold">Atten 79%</span>
+</div>
+<div class="mt-1.5 flex items-baseline gap-1.5">
+<span class="font-mono text-2xl font-bold tracking-tight text-slate-900">1.016</span>
+<span class="text-[11px] font-mono text-slate-400">SG</span>
+</div>
+<div class="w-full bg-slate-100 h-1 rounded-full mt-2 overflow-hidden">
+<div class="bg-copper-500 h-full rounded-full" style="width: 68%;"></div>
+</div>
+<span class="text-[10px] font-mono text-slate-400 mt-1">Target: 1.015 – 1.018</span>
+</div>
+<!-- ABV -->
+<div class="bg-white p-3 rounded border border-slate-200/90 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+<div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+<span class="uppercase tracking-wider">Alcohol By Vol</span>
+<span class="text-copper-600 font-bold text-[10px] bg-copper-50 px-1 py-0.2 rounded border border-copper-200">DIPA SPEC</span>
+</div>
+<div class="mt-1.5 flex items-baseline gap-1">
+<span class="font-mono text-2xl font-bold tracking-tight text-copper-600">8.2</span>
+<span class="font-mono text-sm text-copper-600 font-bold">%</span>
+</div>
+<div class="w-full bg-slate-100 h-1 rounded-full mt-2 overflow-hidden">
+<div class="bg-copper-500 h-full rounded-full" style="width: 82%;"></div>
+</div>
+<span class="text-[10px] font-mono text-slate-400 mt-1">Calculated via Cady/Tinseth</span>
+</div>
+<!-- Bitterness -->
+<div class="bg-white p-3 rounded border border-slate-200/90 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+<div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+<span class="uppercase tracking-wider">Bitterness</span>
+<span class="text-slate-700 font-mono">BU:GU 0.61</span>
+</div>
+<div class="mt-1.5 flex items-baseline gap-1.5">
+<span class="font-mono text-2xl font-bold tracking-tight text-slate-900">48</span>
+<span class="text-[11px] font-mono text-slate-400">IBU</span>
+</div>
+<div class="w-full bg-slate-100 h-1 rounded-full mt-2 overflow-hidden">
+<div class="bg-spruce-600 h-full rounded-full" style="width: 55%;"></div>
+</div>
+<span class="text-[10px] font-mono text-slate-400 mt-1">Whirlpool Dominant (Velvety)</span>
+</div>
+<!-- Color & Appearance -->
+<div class="bg-white p-3 rounded border border-slate-200/90 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+<div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+<span class="uppercase tracking-wider">Color / SRM</span>
+<span class="text-slate-700 font-mono">10.6 EBC</span>
+</div>
+<div class="mt-1.5 flex items-center gap-2.5">
+<div class="w-6 h-6 rounded border border-slate-300 shadow-inner flex items-center justify-center shrink-0" style="background-color: #f7ce68;">
+<span class="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-mono text-2xl font-bold tracking-tight text-slate-900">5.4</span>
+<span class="text-[11px] font-mono text-slate-400">SRM</span>
+</div>
+</div>
+<span class="text-[10px] font-mono text-slate-500 mt-2 truncate">Hazy Golden Straw</span>
+</div>
+<!-- Target CO2 & pH -->
+<div class="bg-white p-3 rounded border border-slate-200/90 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+<div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+<span class="uppercase tracking-wider">CO₂ &amp; MASH pH</span>
+<span class="text-spruce-700 font-semibold">Balanced</span>
+</div>
+<div class="mt-1.5 flex items-baseline justify-between font-mono">
+<div>
+<span class="text-xl font-bold text-slate-900">2.4</span>
+<span class="text-[10px] text-slate-400">vol</span>
+</div>
+<div class="text-right">
+<span class="text-xl font-bold text-copper-600">5.25</span>
+<span class="text-[10px] text-slate-400">pH</span>
+</div>
+</div>
+<span class="text-[10px] font-mono text-slate-400 mt-2">Soft Water (2:1 Cl:SO₄)</span>
+</div>
+<!-- Sourcing Summary Badge -->
+<div class="col-span-2 sm:col-span-4 lg:col-span-1 bg-white p-3 rounded border border-copper-200/90 bg-copper-50/20 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-[11px] font-mono">
+<span class="font-bold text-copper-700 flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">local_shipping</span> SOURCING
+            </span>
+<span class="px-1 py-0.2 rounded bg-spruce-100 text-spruce-800 font-bold text-[10px]">100% MATCH</span>
+</div>
+<div class="mt-1">
+<div class="font-semibold text-xs text-slate-900 leading-tight">The Malt Miller</div>
+<p class="text-[10px] text-slate-500 mt-0.5 leading-snug">All 2 missing items consolidated</p>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1 border-t border-copper-100 font-mono text-xs">
+<span class="text-slate-400 text-[10px]">BASKET:</span>
+<span class="font-bold text-copper-600 text-sm">£15.90</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Main Split Formulation Studio Workspace -->
+<main class="w-full max-w-[1780px] mx-auto px-4 sm:px-6 py-6 flex-1 flex flex-col">
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+<!-- LEFT PANEL: Precision Conversational Brew Copilot (~40% desktop) -->
+<div class="xl:col-span-5 flex flex-col gap-4 bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-5">
+<!-- Co-Brewer Header -->
+<div class="flex items-center justify-between pb-3 border-b border-slate-100">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-copper-600">
+<span class="material-symbols-outlined text-[20px]">science</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-sm tracking-tight text-slate-900 uppercase">Lupulin AI Co-Brewer</span>
+<span class="font-mono text-[10px] font-semibold bg-spruce-50 text-spruce-800 border border-spruce-200 px-1.5 py-0.5 rounded">NEURAL CELLAR v4</span>
+</div>
+<p class="font-mono text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-spruce-700">inventory_2</span>
+                Cellar Linked: <span class="text-slate-800 font-medium">18 Malts, 12 Hops, 4 Yeasts</span>
+</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-50 transition-colors" title="Configuration">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+<!-- Chat Stream Window -->
+<div class="flex flex-col gap-3.5 overflow-y-auto max-h-[600px] pr-1 text-xs">
+<!-- User Bubble -->
+<div class="flex justify-end pl-8">
+<div class="bg-slate-100 border border-slate-200 text-slate-800 p-3 rounded-lg rounded-tr-none max-w-lg shadow-none">
+<div class="flex items-center justify-between gap-4 mb-1">
+<span class="font-mono text-[10px] font-bold text-copper-600 uppercase tracking-wider">Master Brewer (You)</span>
+<span class="font-mono text-[10px] text-slate-400">10:42 AM</span>
+</div>
+<p class="text-[12px] leading-relaxed text-slate-700">
+                "I want to brew a juicy, pillowy double NEIPA this weekend using mostly what's in my Brewfather cellar. Can we push the tropical mango aroma and keep the finish velvety without excessive hop burn?"
+              </p>
+</div>
+</div>
+<!-- AI Response -->
+<div class="flex items-start gap-2.5 pr-2">
+<div class="w-7 h-7 rounded bg-copper-50 text-copper-600 border border-copper-200 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[15px]">psychology</span>
+</div>
+<div class="flex flex-col gap-2.5 max-w-lg flex-1">
+<div class="bg-white border border-slate-200 p-3.5 rounded-lg rounded-tl-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+<!-- Cellar Match badge -->
+<div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+<span class="font-mono text-[11px] font-bold text-spruce-800 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">checklist</span> Cellar Match Analysis (92% Coverage)
+                  </span>
+<span class="font-mono text-[10px] text-slate-400">Brewfather API</span>
+</div>
+<p class="text-[12px] leading-relaxed text-slate-700">
+                  I examined your live inventory: You have <strong class="text-spruce-800 font-semibold">5.0kg Golden Promise</strong> (100% matched) and <strong class="text-spruce-800 font-semibold">1.2kg Flaked Oats</strong> ready in your cellar grain bin. You are missing only 500g Carapils and fresh Citra Cryo.
+                </p>
+<!-- Sensory Profile Optimization Insight -->
+<div class="mt-2.5 bg-slate-50 border border-slate-200/80 p-3 rounded text-[11.5px] flex flex-col gap-1.5">
+<div class="flex items-center gap-1.5 font-semibold text-copper-700">
+<span class="material-symbols-outlined text-[16px]">temp_preferences_custom</span>
+<span class="font-mono uppercase text-[11px] tracking-wide">Hop Schedule &amp; Temperature Tweak</span>
+</div>
+<p class="text-slate-600 leading-snug">
+                    To eliminate harsh astringency and hop burn while amplifying mango and ripe passionfruit thiols:
+                  </p>
+<ul class="text-slate-700 space-y-1 list-disc list-inside mt-0.5">
+<li>Drop Whirlpool temperature to <span class="font-mono font-semibold text-spruce-800">80°C</span> for 20 minutes (retains fragile <em class="italic font-serif">Myrcene</em> &amp; <em class="italic font-serif">Linalool</em>).</li>
+<li>Split Citra: 40g Cryo in Whirlpool, then pair with 50g Galaxy at terminal gravity (Day 3) to prevent hop creep.</li>
+</ul>
+</div>
+<!-- Recommendation Card: Single-Supplier Logistics -->
+<div class="mt-2.5 bg-copper-50/40 border border-copper-200/70 p-3 rounded flex flex-col gap-2">
+<div class="flex items-center justify-between font-mono text-[11px]">
+<span class="font-bold text-copper-700 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">verified</span> One-Stop Sourcing
+                    </span>
+<span class="text-slate-500 text-[10px]">The Malt Miller</span>
+</div>
+<p class="text-[11.5px] text-slate-700 leading-snug">
+                    Weyermann Carapils and vacuum-sealed Citra Cryo are in-stock right now for <strong class="font-mono text-slate-900">£15.90</strong> in a single consolidated package.
+                  </p>
+<div class="flex flex-wrap gap-2 pt-1">
+<button class="bg-copper-500 hover:bg-copper-600 text-white font-mono text-[11px] font-semibold px-2.5 py-1.5 rounded transition-all flex items-center gap-1 shadow-xs">
+<span class="material-symbols-outlined text-[14px]">auto_fix_high</span>
+                      Apply Recipe Tweaks
+                    </button>
+<button class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-mono text-[11px] font-medium px-2.5 py-1.5 rounded transition-all flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">shopping_cart</span>
+                      Review Basket (£15.90)
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro System Diagnostic -->
+<div class="flex items-center justify-center my-0.5">
+<div class="bg-slate-100/90 border border-slate-200 px-2.5 py-1 rounded text-center">
+<span class="font-mono text-[10px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-spruce-600">water_drop</span> Water: Juicy DIPA 2:1 Cl:SO₄ (150ppm Chloride / 75ppm Sulfate)
+              </span>
+</div>
+</div>
+</div>
+<!-- Quick AI Action Prompts -->
+<div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100 font-mono text-[11px]">
+<button class="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-copper-600">swap_horiz</span>
+            Substitute hops with freezer stock
+          </button>
+<button class="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-spruce-700">science</span>
+            Calculate Mash pH &amp; Lactic Acid
+          </button>
+<button class="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-slate-500">bolt</span>
+            Convert to Lutra Kveik (4-day)
+          </button>
+</div>
+<!-- Co-Brewer Input Console -->
+<div class="relative flex flex-col gap-1.5 pt-1">
+<div class="flex items-center bg-slate-50 rounded border border-slate-200 px-3 py-2 focus-within:border-copper-500 focus-within:ring-1 focus-within:ring-copper-500">
+<span class="material-symbols-outlined text-slate-400 text-[18px] mr-2">smart_toy</span>
+<input class="w-full bg-transparent text-slate-900 font-sans text-xs placeholder:text-slate-400 focus:outline-none" placeholder="Ask AI Co-Brewer to modify mash temp, swap dry-hops, or run thiol analysis..." type="text" value="Can we replace Carapils with more Flaked Oats to hit 100% cellar fulfillment?"/>
+<div class="flex items-center gap-1 pl-2 border-l border-slate-200">
+<button class="text-slate-400 hover:text-slate-700 p-1 rounded" title="Voice Input">
+<span class="material-symbols-outlined text-[17px]">mic</span>
+</button>
+<button class="bg-copper-500 hover:bg-copper-600 text-white p-1 rounded transition-colors shadow-xs">
+<span class="material-symbols-outlined text-[16px]">send</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between font-mono text-[10px] text-slate-400 px-0.5">
+<span>Model: Cellar-BrewGPT-4o (Kinetics Edition)</span>
+<span class="text-spruce-700 font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-spruce-600"></span> Live Synced
+            </span>
+</div>
+</div>
+</div>
+<!-- RIGHT PANEL: Precision Technical Recipe Formulation Canvas (~60% desktop) -->
+<div class="xl:col-span-7 flex flex-col gap-5">
+<!-- Formulation Navigation Tabs -->
+<div class="flex items-center justify-between border-b border-slate-200 pb-2">
+<div class="flex items-center gap-1 font-mono text-xs overflow-x-auto">
+<button class="bg-white border-b-2 border-copper-500 text-slate-900 font-bold px-3 py-1.5 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-copper-600">grain</span>
+              FERMENTABLES &amp; GRAIN (7.00 KG)
+            </button>
+<button class="text-slate-500 hover:text-slate-900 px-3 py-1.5 flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[16px]">grass</span>
+              HOPS &amp; ADDITIONS (205G)
+            </button>
+<button class="text-slate-500 hover:text-slate-900 px-3 py-1.5 flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[16px]">bubble_chart</span>
+              YEAST &amp; PROFILES
+            </button>
+<button class="text-slate-500 hover:text-slate-900 px-3 py-1.5 flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[16px]">science</span>
+              WATER SALTS
+            </button>
+</div>
+<button class="hidden sm:flex items-center gap-1 text-slate-500 hover:text-slate-800 font-mono text-xs uppercase tracking-wider font-medium">
+<span class="material-symbols-outlined text-[15px]">file_download</span>
+            BeerXML / Brewfather
+          </button>
+</div>
+<!-- SECTION 1: Malt Bill & Sugars Table -->
+<div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="font-mono text-xs font-bold text-copper-600 bg-copper-50 border border-copper-200 px-1.5 py-0.5 rounded">01</span>
+<div>
+<h2 class="text-sm font-bold text-slate-900 uppercase tracking-tight">Malt Bill &amp; Sugars</h2>
+<span class="font-mono text-[11px] text-slate-500 block">Total Grist: 7.00 kg • Mash Thickness: 3.0 L/kg • Predicted Plato: 18.8°P</span>
+</div>
+</div>
+<button class="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-xs px-2.5 py-1 rounded flex items-center gap-1 transition-all">
+<span class="material-symbols-outlined text-[15px]">add</span> Add Fermentable
+            </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-sans text-xs border-collapse">
+<thead>
+<tr class="font-mono text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100 bg-slate-50/50">
+<th class="py-2 px-3 font-semibold">Ingredient</th>
+<th class="py-2 px-3 font-semibold">Type</th>
+<th class="py-2 px-3 font-semibold text-right">Amount</th>
+<th class="py-2 px-3 font-semibold text-right">Ratio</th>
+<th class="py-2 px-3 font-semibold text-right">Color</th>
+<th class="py-2 px-3 font-semibold">Cellar &amp; Sourcing Status</th>
+<th class="py-2 px-3 font-semibold text-center">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 text-slate-700">
+<!-- Item 1: Golden Promise -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900">Golden Promise (Crisp)</div>
+<div class="font-mono text-[10px] text-slate-400">Base Malt • Extract 81.5%</div>
+</td>
+<td class="py-2.5 px-3 text-slate-500 font-mono">Grain</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">5.00 kg</td>
+<td class="py-2.5 px-3 text-right font-mono text-slate-600">71.4%</td>
+<td class="py-2.5 px-3 text-right font-mono text-copper-700">2.8 SRM</td>
+<td class="py-2.5 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-spruce-50 text-spruce-800 border border-spruce-200">
+<span class="w-1.5 h-1.5 rounded-full bg-spruce-600"></span>
+                      In Cellar (8.5kg on hand)
+                    </span>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<!-- Item 2: Flaked Oats -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900">Flaked Jumbo Oats</div>
+<div class="font-mono text-[10px] text-slate-400">Adjunct • Pillowy Haze &amp; Body</div>
+</td>
+<td class="py-2.5 px-3 text-slate-500 font-mono">Adjunct</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">1.20 kg</td>
+<td class="py-2.5 px-3 text-right font-mono text-slate-600">17.1%</td>
+<td class="py-2.5 px-3 text-right font-mono text-copper-700">1.2 SRM</td>
+<td class="py-2.5 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-spruce-50 text-spruce-800 border border-spruce-200">
+<span class="w-1.5 h-1.5 rounded-full bg-spruce-600"></span>
+                      In Cellar (2.0kg on hand)
+                    </span>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<!-- Item 3: Carapils (Missing -> Sourced) -->
+<tr class="hover:bg-amber-50/30 transition-colors bg-amber-50/15">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900 flex items-center gap-1">
+                      Carapils (Weyermann)
+                      <span class="material-symbols-outlined text-[13px] text-copper-500" title="Consolidated external order">shopping_basket</span>
+</div>
+<div class="font-mono text-[10px] text-slate-400">Dextrin Malt • Foam Head Retention</div>
+</td>
+<td class="py-2.5 px-3 text-slate-500 font-mono">Grain</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">0.50 kg</td>
+<td class="py-2.5 px-3 text-right font-mono text-slate-600">7.1%</td>
+<td class="py-2.5 px-3 text-right font-mono text-copper-700">1.8 SRM</td>
+<td class="py-2.5 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-copper-50 text-copper-700 border border-copper-200">
+<span class="material-symbols-outlined text-[12px]">local_shipping</span>
+                      Order: The Malt Miller (£2.10)
+                    </span>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<!-- Item 4: Dextrose -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900">Corn Sugar / Dextrose</div>
+<div class="font-mono text-[10px] text-slate-400">Sugar • Lightens body for 8.2% DIPA</div>
+</td>
+<td class="py-2.5 px-3 text-slate-500 font-mono">Sugar</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">0.30 kg</td>
+<td class="py-2.5 px-3 text-right font-mono text-slate-600">4.3%</td>
+<td class="py-2.5 px-3 text-right font-mono text-copper-700">0.0 SRM</td>
+<td class="py-2.5 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-spruce-50 text-spruce-800 border border-spruce-200">
+<span class="w-1.5 h-1.5 rounded-full bg-spruce-600"></span>
+                      In Cellar Pantry (1.1kg)
+                    </span>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- SECTION 2: Hop Schedule & Additions Table -->
+<div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="font-mono text-xs font-bold text-copper-600 bg-copper-50 border border-copper-200 px-1.5 py-0.5 rounded">02</span>
+<div>
+<h2 class="text-sm font-bold text-slate-900 uppercase tracking-tight">Hop Schedule &amp; Dry Hop Engine</h2>
+<span class="font-mono text-[11px] text-slate-500 block">Total Hops: 205g • Calc Bitterness: 48.0 IBU • Dry Hop Rate: 10.25 g/L</span>
+</div>
+</div>
+<button class="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-xs px-2.5 py-1 rounded flex items-center gap-1 transition-all">
+<span class="material-symbols-outlined text-[15px]">add</span> Add Hop Addition
+            </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-sans text-xs border-collapse">
+<thead>
+<tr class="font-mono text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100 bg-slate-50/50">
+<th class="py-2 px-3 font-semibold">Hop Variety</th>
+<th class="py-2 px-3 font-semibold font-mono">Alpha %</th>
+<th class="py-2 px-3 font-semibold">Addition Timing</th>
+<th class="py-2 px-3 font-semibold text-right">Grams</th>
+<th class="py-2 px-3 font-semibold text-right">IBU</th>
+<th class="py-2 px-3 font-semibold">Inventory Source</th>
+<th class="py-2 px-3 font-semibold text-center">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 text-slate-700">
+<!-- Hop 1: Magnum -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900">Magnum (Germany)</div>
+<div class="font-mono text-[10px] text-slate-400">Pellets T90 • Clean Bittering Foundation</div>
+</td>
+<td class="py-2.5 px-3 font-mono text-slate-600">14.0%</td>
+<td class="py-2.5 px-3 font-mono">
+<span class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-medium">Boil 60 min</span>
+</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">15 g</td>
+<td class="py-2.5 px-3 text-right font-mono font-semibold text-spruce-700">18.2 IBU</td>
+<td class="py-2.5 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-spruce-50 text-spruce-800 border border-spruce-200">
+<span class="material-symbols-outlined text-[12px]">ac_unit</span> Freezer Bin #3
+                    </span>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<!-- Hop 2: Citra Cryo (Whirlpool) -->
+<tr class="hover:bg-amber-50/30 transition-colors bg-amber-50/15">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900">Citra Cryo® (HBC 394)</div>
+<div class="font-mono text-[10px] text-slate-400">LupuLN2 Powder • Mango, Pink Grapefruit</div>
+</td>
+<td class="py-2.5 px-3 font-mono text-slate-600">24.5%</td>
+<td class="py-2.5 px-3 font-mono">
+<span class="bg-copper-50 text-copper-700 border border-copper-200 px-1.5 py-0.5 rounded font-semibold">Whirlpool 80°C (20m)</span>
+</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">40 g</td>
+<td class="py-2.5 px-3 text-right font-mono font-semibold text-spruce-700">16.5 IBU</td>
+<td class="py-2.5 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-copper-50 text-copper-700 border border-copper-200">
+<span class="material-symbols-outlined text-[12px]">shopping_cart</span> Buy: The Malt Miller (£6.90)
+                    </span>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<!-- Hop 3: Mosaic T90 (Whirlpool) -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900">Mosaic® (HBC 369)</div>
+<div class="font-mono text-[10px] text-slate-400">Pellets T90 • Blueberry, Bubblegum, Citrus</div>
+</td>
+<td class="py-2.5 px-3 font-mono text-slate-600">12.5%</td>
+<td class="py-2.5 px-3 font-mono">
+<span class="bg-copper-50 text-copper-700 border border-copper-200 px-1.5 py-0.5 rounded font-semibold">Whirlpool 80°C (20m)</span>
+</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">50 g</td>
+<td class="py-2.5 px-3 text-right font-mono font-semibold text-spruce-700">13.3 IBU</td>
+<td class="py-2.5 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-spruce-50 text-spruce-800 border border-spruce-200">
+<span class="material-symbols-outlined text-[12px]">ac_unit</span> Cellar (2023 Crop)
+                    </span>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+<!-- Hop 4: Dry Hop Addition -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-2.5 px-3">
+<div class="font-semibold text-slate-900">Citra &amp; Galaxy Blend</div>
+<div class="font-mono text-[10px] text-slate-400">50g Citra (Freezer) + 50g Galaxy (Sourced)</div>
+</td>
+<td class="py-2.5 px-3 font-mono text-slate-600">14.2% avg</td>
+<td class="py-2.5 px-3 font-mono">
+<span class="bg-spruce-50 text-spruce-800 border border-spruce-200 px-1.5 py-0.5 rounded font-semibold">Dry Hop (Day 3 @ 16°C)</span>
+</td>
+<td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">100 g</td>
+<td class="py-2.5 px-3 text-right font-mono text-slate-400">0.0 IBU</td>
+<td class="py-2.5 px-3 font-mono text-[10px]">
+<div class="flex flex-col gap-1">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-spruce-50 text-spruce-800 border border-spruce-200 w-fit">
+                        50g Citra: In Cellar
+                      </span>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-copper-50 text-copper-700 border border-copper-200 w-fit">
+                        50g Galaxy: Order TMM (£6.90)
+                      </span>
+</div>
+</td>
+<td class="py-2.5 px-3 text-center">
+<button class="text-slate-300 hover:text-rose-600 transition-colors"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- SECTION 3: Micro Fermentation & Water Chemistry Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Yeast Culture Card -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-mono text-[10px] uppercase tracking-wider text-slate-400">Selected Culture</span>
+<span class="font-mono text-[10px] bg-spruce-50 text-spruce-800 border border-spruce-200 px-1.5 py-0.5 rounded font-bold">Cellar In-Stock</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-copper-600">
+<span class="material-symbols-outlined text-[20px]">biotech</span>
+</div>
+<div>
+<div class="font-bold text-xs text-slate-900">Lallemand Verdant IPA</div>
+<p class="font-mono text-[11px] text-slate-500">Dry English Ale Yeast • High Apricot Ester</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2 mt-3 font-mono text-center">
+<div class="bg-slate-50 border border-slate-100 p-2 rounded">
+<span class="text-[10px] text-slate-400 block uppercase">Dosage</span>
+<span class="text-xs font-bold text-slate-900">2 Sachets</span>
+</div>
+<div class="bg-slate-50 border border-slate-100 p-2 rounded">
+<span class="text-[10px] text-slate-400 block uppercase">Pitch Rate</span>
+<span class="text-xs font-bold text-spruce-700">0.85 M/ml/°P</span>
+</div>
+<div class="bg-slate-50 border border-slate-100 p-2 rounded">
+<span class="text-[10px] text-slate-400 block uppercase">Opt. Temp</span>
+<span class="text-xs font-bold text-copper-600">19°C</span>
+</div>
+</div>
+</div>
+<p class="text-[11px] text-slate-500 mt-2.5 font-mono leading-tight">
+              Direct pitch at 19°C; ramp to 21°C on Day 4 for diacetyl cleanup.
+            </p>
+</div>
+<!-- Water Chemistry Card -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-mono text-[10px] uppercase tracking-wider text-slate-400">Water Chemistry</span>
+<span class="font-mono text-[10px] text-copper-600 font-bold bg-copper-50 border border-copper-200 px-1.5 py-0.5 rounded">Juicy Chloride Target</span>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<span class="font-bold text-xs text-slate-900">2:1 Cl to SO₄ Ratio</span>
+<span class="font-mono text-[11px] text-slate-500 block">RO Base + Targeted Brewing Salts</span>
+</div>
+<div class="text-right font-mono">
+<span class="text-lg font-bold text-spruce-700">150:75</span>
+<span class="text-[10px] text-slate-400 block">ppm</span>
+</div>
+</div>
+<div class="mt-2.5 flex flex-col gap-1 font-mono text-[11px]">
+<div class="flex justify-between bg-slate-50 px-2 py-1 rounded border border-slate-100">
+<span class="text-slate-600">Calcium Chloride (CaCl₂)</span>
+<span class="font-bold text-slate-900">6.4 g (In stock)</span>
+</div>
+<div class="flex justify-between bg-slate-50 px-2 py-1 rounded border border-slate-100">
+<span class="text-slate-600">Gypsum (CaSO₄)</span>
+<span class="font-bold text-slate-900">3.2 g (In stock)</span>
+</div>
+<div class="flex justify-between bg-slate-50 px-2 py-1 rounded border border-slate-100">
+<span class="text-slate-600">Lactic Acid (80%)</span>
+<span class="font-bold text-copper-600">4.1 ml for 5.25 pH</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 4: Sourcing & Single-Supplier Optimization Banner -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+<div class="flex items-start gap-3.5">
+<div class="w-10 h-10 rounded bg-copper-50 text-copper-600 border border-copper-200 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">local_shipping</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-bold text-xs sm:text-sm text-slate-900 uppercase tracking-tight">Single-Supplier Fulfillment (The Malt Miller)</span>
+<span class="font-mono text-[10px] bg-spruce-50 text-spruce-800 border border-spruce-200 px-1.5 py-0.5 rounded font-bold uppercase">Consolidated</span>
+</div>
+<p class="text-xs text-slate-600 mt-0.5 leading-snug">
+                All 2 missing items required to brew: <strong class="text-slate-800">Carapils 500g</strong> &amp; <strong class="text-slate-800">Citra Cryo 50g</strong> &amp; <strong class="text-slate-800">Galaxy 50g</strong> bundled for £15.90.
+              </p>
+<div class="flex items-center gap-3 mt-1.5 font-mono text-[11px]">
+<span class="text-spruce-700 font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> 100% In-Stock at The Malt Miller
+                </span>
+<span class="text-slate-300">•</span>
+<span class="text-slate-500">Est. Delivery: Tomorrow Morning</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto shrink-0 font-mono text-xs">
+<div class="text-right hidden sm:block pr-1">
+<span class="text-[10px] uppercase text-slate-400 block">Total Basket</span>
+<span class="text-lg font-bold text-slate-900 leading-none">£15.90</span>
+</div>
+<button class="w-full sm:w-auto bg-copper-500 hover:bg-copper-600 text-white font-semibold px-4 py-2.5 rounded shadow-sm transition-all flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">shopping_cart</span>
+              EXPORT TO BASKET &amp; ORDER
+            </button>
+<button class="w-full sm:w-auto bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-medium px-3 py-2.5 rounded transition-all flex items-center justify-center gap-1" title="Recalculate with 100% freezer hops and oats">
+<span class="material-symbols-outlined text-[16px] text-spruce-700">eco</span>
+              100% Cellar Mode
+            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Clean Scandinavian Studio Footer -->
+<footer class="w-full bg-white border-t border-slate-200 py-6 mt-6">
+<div class="max-w-[1780px] mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-xs text-slate-500">
+<div class="flex items-center gap-2">
+<span class="font-bold text-slate-800 uppercase">LUPULIN KONTOR LAB</span>
+<span class="text-slate-300">•</span>
+<span>Automated Cellar Intelligence &amp; Sensory Optimization</span>
+</div>
+<div class="flex items-center gap-5 text-[11px] uppercase tracking-wider">
+<a class="hover:text-copper-600 transition-colors" href="#">Recipe Engine</a>
+<a class="hover:text-copper-600 transition-colors" href="#">Brewfather API</a>
+<a class="hover:text-copper-600 transition-colors" href="#">Sourcing Gateway</a>
+<a class="hover:text-copper-600 transition-colors" href="#">Grainfather Telemetry</a>
+</div>
+<div class="text-[11px] text-slate-400">
+        © 2025 Lupulin Labs Inc. All telemetry encrypted.
+      </div>
+</div>
+</footer>
+</body></html>
