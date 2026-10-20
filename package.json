@@ -5,7 +5,8 @@
   "scripts": {
     "postinstall": "patch-package",
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "build": "opennextjs-cloudflare build",
+    "build:next": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

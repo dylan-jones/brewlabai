@@ -150,10 +150,12 @@ For a Git-connected Worker, set these commands in Cloudflare's **Settings > Buil
 
 | Setting | Command |
 | --- | --- |
-| Build command | `npm run cf:build` |
+| Build command | `npm run build` |
 | Deploy command | `npm run cf:deploy` |
 
-Set the root directory to the folder containing this project's `package.json`. The regular `npm run build` only produces Next.js output in `.next`; it does not create the `.open-next` Worker bundle or compiled adapter configuration. Using it before `wrangler deploy` causes `Could not find compiled Open Next config`. Save both dashboard commands and retry the deployment.
+Set the root directory to the folder containing this project's `package.json`. Both `npm run build` and `npm run cf:build` produce the complete `.open-next` Worker bundle and compiled adapter configuration. OpenNext calls `npm run build:next` internally to build Next.js without recursion. Use `npm run build:next` only when you explicitly need the plain `.next` output.
+
+If the log says `OpenNext project detected, calling opennextjs-cloudflare deploy` followed by `Could not find compiled Open Next config`, the deploy command ran without a complete OpenNext build in that directory. Ensure the build is enabled, uses `npm run build` (not `npm run build:next` or `next build`), and the build and deploy phases use the same root directory. Push these script/configuration changes and clear the Cloudflare build cache before retrying. The default `npx wrangler deploy` command also works after `npm run build`, because the required adapter configuration now exists.
 
 For local command-line deployment, `npm run deploy` still builds and deploys in one command. Do not use that combined command after `npm run cf:build` in the dashboard unless you intend to build twice.
 
