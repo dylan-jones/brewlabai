@@ -725,6 +725,21 @@ export default function RecipeStudio() {
             </UI.Row>
           </UI.Identity>
 
+          {user && !aiConfigured && (
+            <UI.Insight as="aside" role="status" aria-label="AI setup required">
+              <UI.Row $between $wrap>
+                <div>
+                  <strong>Connect your AI provider</strong>
+                  <p>Add your AI provider&apos;s API key in your profile to create recipes and use the AI co-brewer.</p>
+                </div>
+                <UI.Button as={Link} href="/profile#ai">
+                  <Sparkles size={14} />
+                  Add AI API key
+                </UI.Button>
+              </UI.Row>
+            </UI.Insight>
+          )}
+
           <UI.RecipeSettings id="recipe-settings" aria-labelledby="recipe-settings-title">
             <UI.Width>
               <form

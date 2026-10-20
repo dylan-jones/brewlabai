@@ -151,6 +151,19 @@ describe("stockist catalog refresh", () => {
     await waitFor(() => expect(fetcher).toHaveBeenCalledWith("/api/workspace", expect.any(Object)));
     fireEvent.click(screen.getByRole("button", { name: "Stockists" }));
   }
+  it.each([false, true])("shows the profile setup notice only when AI is missing (configured: %s)", async (configured) => {
+    fetcher.mockImplementation(async (path) => ({ ok: true, json: async () => path === "/api/session"
+      ? { user: { id: "brewer", email: "brewer@example.com" }, aiConfigured: configured }
+      : { suppliers: [supplier] } }));
+    render(<ThemeProvider theme={lightTheme}><RecipeStudio /></ThemeProvider>);
+    await waitFor(() => expect(fetcher).toHaveBeenCalledWith("/api/workspace", expect.any(Object)));
+    if (configured) {
+      expect(screen.queryByRole("status", { name: "AI setup required" })).toBeNull();
+    } else {
+      expect(screen.getByRole("status", { name: "AI setup required" }).textContent).toContain("API key in your profile");
+      expect(screen.getByRole("link", { name: "Add AI API key" }).getAttribute("href")).toBe("/profile#ai");
+    }
+  });
   it("shows catalog ingredient, pack size, price, and stock", async () => {
     await openStockists();
     expect(screen.getByText("BeerGuevara website catalog")).toBeTruthy();

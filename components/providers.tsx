@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { ThemeProvider, createGlobalStyle } from "styled-components";
+import { ThemeProvider, createGlobalStyle, keyframes } from "styled-components";
 import { lightTheme, darkTheme } from "@/lib/theme";
 import { useBrewStore } from "@/lib/store";
+
+const spin = keyframes`to { transform: rotate(360deg); }`;
 
 const GlobalStyle = createGlobalStyle`
   *, *::before, *::after { box-sizing: border-box; }
@@ -17,11 +19,15 @@ const GlobalStyle = createGlobalStyle`
   a { color: inherit; text-decoration: none; }
   h1, h2, h3, p { margin: 0; }
   svg { flex-shrink: 0; vertical-align: middle; }
+  .lucide-loader-circle, .lucide-loader, .lucide-loader-2 { animation: ${spin} .8s linear infinite; transform-origin: center; transform-box: fill-box; }
   input, select, textarea { min-width: 0; background: ${({ theme }) => theme.colors.surface}; border: 1px solid ${({ theme }) => theme.colors.border}; border-radius: 4px; padding: 8px 10px; }
   :focus-visible { outline: 2px solid ${({ theme }) => theme.colors.accent}; outline-offset: 3px; }
   ::selection { background: ${({ theme }) => theme.colors.accentSoft}; }
   * { scrollbar-width: thin; scrollbar-color: ${({ theme }) => theme.colors.border} transparent; }
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    .lucide-loader-circle, .lucide-loader, .lucide-loader-2 { animation: none; }
+  }
 `;
 
 export default function Providers({ children }: { children: React.ReactNode }) {
