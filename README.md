@@ -112,7 +112,7 @@ Gemini receives simplified tool schemas to avoid Google's schema-complexity reje
 
 ## Stockists & Single-Supplier Sourcing
 
-No stockists, product prices, or inventory are preloaded. Add your own stockists and import their product catalog through the stockist form. Package sizes use kg for grains, grams for hops/salts, and packs for yeast. Stock is the number of available packages. Ingredient selectors contain reference brewing properties, not owned inventory or supplier stock.
+No stockists, product prices, or inventory are preloaded. Add your own stockists; manual product-catalog JSON is optional. For BeerGuevara, save `https://beerguevara.com/` with ZAR currency, then use the stockist's Refresh control. Expand Catalog inventory to inspect product names, package sizes, prices, and stock. Package sizes use kg for grains, grams for hops/salts, and packs for yeast. Stock is the number of published available packages. Ingredient selectors contain reference brewing properties, not owned inventory or supplier stock.
 
 ```json
 [
@@ -127,7 +127,13 @@ No stockists, product prices, or inventory are preloaded. Add your own stockists
 ]
 ```
 
-For an approved supplier API, set server-only `STOCKIST_FEEDS` to a JSON map of saved supplier IDs to HTTPS catalog URLs. The feed must return the product array above. `POST /api/suppliers/refresh` with `{ "id": "SAVED_SUPPLIER_ID" }` fetches that configured feed and validates it before replacing the catalog. URLs cannot be supplied by the browser, redirects are rejected, and response size/time are bounded. Only configure feeds you trust and are authorized to access. Vendor-specific scraping requires permission and a connector for that vendor; no arbitrary URL scraping is enabled.
+BeerGuevara's connector reads its public WooCommerce Store API, rather than guessing at HTML or bypassing access controls. It imports supported simple grain, hop, yeast, and water-salt products with explicit package sizes and published quantities. Generic "in stock" labels are not treated as inventory counts. Unsupported products, ambiguous sizes, multipacks, backorders, and unpublished quantities are skipped. The last-check time and skipped-entry count are saved with the catalog. These are point-in-time prices and quantities, not reserved stock or a checkout quote; delivery remains the charge you entered.
+
+The built-in connector always requests the fixed `https://beerguevara.com/wp-json/wc/store/v1/products` endpoint. It rejects redirects, bounds each response to 1.5 MB, limits the catalog to 10 pages of 100 products, and uses a 45-second overall timeout. Pagination, duplicate IDs, product data, and ZAR currency are validated before saving. A failed or partial refresh leaves the previous catalog untouched. Refresh requires authentication and same-origin requests and uses the existing six-syncs-per-hour quota.
+
+For other approved supplier APIs, set server-only `STOCKIST_FEEDS` to a JSON map of saved supplier IDs to HTTPS catalog URLs. The feed must return the product array above and takes precedence over the built-in connector. `POST /api/suppliers/refresh` accepts only `{ "id": "SAVED_SUPPLIER_ID" }`; browser-supplied URLs are rejected. Only configure feeds you trust and are authorized to access. Other websites require their own connector; no arbitrary URL scraping is enabled.
+
+Run the opt-in, read-only live connector check with `TEST_BEERGUEVARA_LIVE=1 npm test -- lib/stockist-catalog.test.ts`. Normal test runs use fixtures and make no storefront requests.
 
 [lib/optimizer.ts](lib/optimizer.ts) aggregates repeated ingredients, subtracts exact-name local stock, rounds shortfalls to packages, checks package stock, and rejects every supplier that cannot fulfill the entire basket. Only explicitly declared catalog substitutions are eligible, and they can be disabled. Shipping is included. Options are grouped by currency; there is no foreign-exchange conversion, so compare prices only within the same currency. Shopping lists export as CSV, not an automatically purchased cart.
 

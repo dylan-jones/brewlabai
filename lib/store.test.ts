@@ -4,6 +4,7 @@ import { aiRequestSchema, recipeDraftSchema, recipeSchema, supplierSchema } from
 import { requirementsFor } from "./optimizer";
 import { calculateRecipe } from "./calculations";
 import { useBrewStore } from "./store";
+import { normalizeRecipeIds } from "./recipe";
 
 vi.mock("idb-keyval", () => ({ get: vi.fn(), set: vi.fn(), del: vi.fn() }));
 
@@ -39,6 +40,31 @@ describe("recipe drafts", () => {
     useBrewStore.getState().startNewRecipe();
     expect(useBrewStore.getState().recipe).toEqual(createEmptyRecipe());
     expect(useBrewStore.getState().messages).toEqual([]);
+  });
+
+  it("repairs duplicate IDs on apply so each hop addition can be edited independently", () => {
+    const duplicate = { ...initialRecipe, hops: initialRecipe.hops.map((hop) => ({ ...hop, id: "hop-default-9b5fadfd" })) };
+    useBrewStore.getState().setRecipe(duplicate);
+    const recipe = useBrewStore.getState().recipe;
+    expect(new Set(recipe.hops.map((hop) => hop.id)).size).toBe(recipe.hops.length);
+    expect(recipe.hops[0].id).toBe("hop-default-9b5fadfd");
+    expect(normalizeRecipeIds(recipe)).toBe(recipe);
+    const target = recipe.hops[1].id;
+    useBrewStore.getState().updateRecipe({ hops: recipe.hops.map((hop) => hop.id === target ? { ...hop, grams: hop.grams + 1 } : hop) });
+    expect(useBrewStore.getState().recipe.hops.filter((hop, index) => hop.grams !== recipe.hops[index].grams)).toHaveLength(1);
+    expect(duplicate.hops.every((hop) => hop.id === "hop-default-9b5fadfd")).toBe(true);
+  });
+
+  it("repairs IDs in restored drafts and saved recipes without changing ingredient data", () => {
+    const duplicate = { ...initialRecipe, name: "My brew", grains: initialRecipe.grains.map((grain) => ({ ...grain, id: "same" })), hops: initialRecipe.hops.map((hop) => ({ ...hop, id: "same" })) };
+    const merge = useBrewStore.persist.getOptions().merge!;
+    const restored = merge({ recipe: duplicate, savedRecipes: [{ id: "saved", recipe: duplicate, date: "2026-10-20" }] }, useBrewStore.getState());
+    for (const recipe of [restored.recipe, restored.savedRecipes[0].recipe]) {
+      const ingredients = [...recipe.grains, ...recipe.hops];
+      expect(new Set(ingredients.map((ingredient) => ingredient.id)).size).toBe(ingredients.length);
+      expect(calculateRecipe(recipe)).toEqual(calculateRecipe(duplicate));
+      expect(requirementsFor(recipe)).toEqual(requirementsFor(duplicate));
+    }
   });
 
   it("restores an unnamed draft and preserves modified existing recipes", () => {

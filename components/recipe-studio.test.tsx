@@ -1,6 +1,8 @@
+// @vitest-environment happy-dom
 import { renderToStaticMarkup } from "react-dom/server";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "styled-components";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBrewStore } from "../lib/store";
 import { lightTheme } from "../lib/theme";
 import { bjcpBeerStyles } from "../lib/bjcp";
@@ -16,6 +18,7 @@ vi.mock("@/lib/store", async () => {
 });
 vi.mock("@/lib/calculations", () => import("../lib/calculations"));
 vi.mock("@/lib/bjcp", () => import("../lib/bjcp"));
+vi.mock("@/lib/stockist-catalog", () => import("../lib/stockist-catalog"));
 vi.mock("@/lib/profile-settings", () => import("../lib/profile-settings"));
 vi.mock("@/lib/optimizer", () => import("../lib/optimizer"));
 vi.mock("@/lib/seed", () => import("../lib/seed"));
@@ -127,5 +130,54 @@ describe("inline recipe settings", () => {
     expect(markup).not.toContain("javascript:");
     expect(markup).not.toContain("https://tracker.invalid/pixel.png");
     expect(markup).toContain('href="https://docs.brewfather.app/api" target="_blank" rel="noopener noreferrer"');
+  });
+});
+
+describe("stockist catalog refresh", () => {
+  const product = { ingredient: "Rakau", kind: "hop" as const, packageSize: 50, price: 45, stock: 5 };
+  const supplier = { id: "mine", name: "BeerGuevara", url: "https://beerguevara.com/", currency: "ZAR", shipping: 80, products: [product] };
+  const fetcher = vi.fn();
+  beforeEach(() => {
+    vi.resetAllMocks();
+    useBrewStore.setState({ ...useBrewStore.getInitialState(), suppliers: [supplier] }, true);
+    vi.stubGlobal("fetch", fetcher);
+    fetcher.mockImplementation(async (path) => ({ ok: true, json: async () => path === "/api/session"
+      ? { user: { id: "brewer", email: "brewer@example.com" }, aiConfigured: false }
+      : { suppliers: [supplier] } }));
+  });
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+  async function openStockists() {
+    render(<ThemeProvider theme={lightTheme}><RecipeStudio /></ThemeProvider>);
+    await waitFor(() => expect(fetcher).toHaveBeenCalledWith("/api/workspace", expect.any(Object)));
+    fireEvent.click(screen.getByRole("button", { name: "Stockists" }));
+  }
+  it("shows catalog ingredient, pack size, price, and stock", async () => {
+    await openStockists();
+    expect(screen.getByText("BeerGuevara website catalog")).toBeTruthy();
+    expect(screen.getByLabelText("BeerGuevara catalog inventory").textContent).toContain("Rakau");
+    expect(screen.getByLabelText("BeerGuevara catalog inventory").textContent).toContain("50 g");
+    expect(screen.getByRole("button", { name: "Refresh BeerGuevara catalog" }).title).toBe("Refresh BeerGuevara website catalog");
+  });
+  it("blocks duplicate refreshes and stores verified sync metadata", async () => {
+    await openStockists();
+    let complete: (value: unknown) => void = () => {};
+    fetcher.mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
+    const refresh = screen.getByRole("button", { name: "Refresh BeerGuevara catalog" }) as HTMLButtonElement;
+    fireEvent.click(refresh);
+    expect(refresh.disabled).toBe(true);
+    fireEvent.click(refresh);
+    const catalogSync = { source: "beerguevara", checkedAt: "2026-10-20T10:00:00Z", scanned: 10, skipped: 9 };
+    complete({ ok: true, json: async () => ({ supplier: { ...supplier, catalogSync } }) });
+    await screen.findByText(/Catalog refreshed: 1 product/);
+    expect(useBrewStore.getState().suppliers[0].catalogSync).toEqual(catalogSync);
+    expect(refresh.disabled).toBe(false);
+    expect(fetcher.mock.calls.filter(([path]) => path === "/api/suppliers/refresh")).toHaveLength(1);
+  });
+  it("retains saved stock after refresh failure", async () => {
+    await openStockists();
+    fetcher.mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Catalog unavailable. Your saved catalog is unchanged." }) });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh BeerGuevara catalog" }));
+    await screen.findByText("Catalog unavailable. Your saved catalog is unchanged.");
+    expect(useBrewStore.getState().suppliers[0].products).toEqual([product]);
   });
 });

@@ -10,6 +10,7 @@ import { del, get, set } from "idb-keyval";
 import { createEmptyRecipe, isLegacyDemoRecipe, sampleInventory, sampleSuppliers } from "./seed";
 import { inventorySchema, recipeDraftSchema, recipeSchema, supplierSchema } from "./schemas";
 import type { ChatMessage, InventoryItem, Recipe, Supplier } from "./types";
+import { normalizeRecipeIds } from "./recipe";
 
 let storageFailure = false;
 function withoutDemoInventory(inventory: InventoryItem[], source: string | undefined) {
@@ -91,9 +92,9 @@ export const useBrewStore = create<BrewState>()(
       accountId: null,
       dark: false,
       units: "metric",
-      setRecipe: (recipe) => setState({ recipe }),
+      setRecipe: (recipe) => setState({ recipe: normalizeRecipeIds(recipe) }),
       updateRecipe: (updates) =>
-        setState((state) => ({ recipe: { ...state.recipe, ...updates } })),
+        setState((state) => ({ recipe: normalizeRecipeIds({ ...state.recipe, ...updates }) })),
       startNewRecipe: () => setState({ recipe: createEmptyRecipe(), messages: [] }),
       setInventory: (inventory, inventorySource) =>
         setState({
@@ -152,7 +153,7 @@ export const useBrewStore = create<BrewState>()(
         return {
           ...current,
           recipe: recipe.success && !isLegacyDemoRecipe(recipe.data)
-            ? recipe.data
+            ? normalizeRecipeIds(recipe.data)
             : createEmptyRecipe(),
           inventory: inventory.success
             ? withoutDemoInventory(inventory.data, data.inventorySource)
@@ -179,6 +180,7 @@ export const useBrewStore = create<BrewState>()(
                     !isLegacyDemoRecipe(item.recipe),
                 )
                 .slice(0, 100)
+                .map((item) => ({ ...item, recipe: normalizeRecipeIds(item.recipe) }))
             : [],
           messages: [],
         };

@@ -29,6 +29,7 @@
     "ai": "^7.0.143",
     "better-auth": "^1.7.11",
     "brewcalc": "0.1.6",
+    "entities": "^8.1.0",
     "idb-keyval": "^6.2.2",
     "lucide-react": "latest",
     "next": "^16.4.2",
@@ -51,12 +52,14 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261019.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "better-call": "^1.4.2",
     "eslint": "^9",
     "eslint-config-next": "^16.4.2",
+    "happy-dom": "^21.0.3",
     "typescript": "^5.9.3",
     "vitest": "latest",
     "wrangler": "latest"

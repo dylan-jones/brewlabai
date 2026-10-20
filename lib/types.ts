@@ -67,6 +67,12 @@ export interface Supplier {
   url: string;
   shipping: number;
   currency: string;
+  catalogSync?: {
+    source: "beerguevara" | "feed";
+    checkedAt: string;
+    scanned: number;
+    skipped: number;
+  };
   products: SupplierProduct[];
 }
 

@@ -67,6 +67,12 @@ export const supplierSchema = z.object({
     ),
   shipping: number(0, 1000),
   currency: z.enum(["ZAR", "GBP", "USD", "EUR", "AUD", "NZD", "CAD"]).default("ZAR"),
+  catalogSync: z.object({
+    source: z.enum(["beerguevara", "feed"]),
+    checkedAt: z.iso.datetime(),
+    scanned: z.number().int().min(0).max(5000),
+    skipped: z.number().int().min(0).max(5000),
+  }).optional(),
   products: z
     .array(
       z.object({
@@ -111,4 +117,26 @@ export const aiRequestSchema = z.object({
     )
     .min(1)
     .max(12),
+});
+
+export const builderStyleSchema = z.object({
+  style: text,
+  overview: z.string().trim().min(1).max(700),
+});
+export const builderStylesSchema = z.object({
+  styles: z.array(builderStyleSchema).min(1).max(5),
+});
+export const builderRequestSchema = z.object({
+  action: z.enum(["styles", "recipe"]),
+  mode: z.enum(["inventory", "mixed", "stockists"]),
+  supplierIds: z.array(text).max(100),
+  brief: z.string().trim().max(3000),
+  recipe: recipeDraftSchema,
+  excludedStyles: z.array(text).max(40).default([]),
+  style: builderStyleSchema.optional(),
+}).strict().superRefine((input, context) => {
+  if (input.mode !== "inventory" && !input.supplierIds.length)
+    context.addIssue({ code: "custom", path: ["supplierIds"], message: "Select at least one stockist." });
+  if (input.action === "recipe" && !input.style)
+    context.addIssue({ code: "custom", path: ["style"], message: "Select a style." });
 });

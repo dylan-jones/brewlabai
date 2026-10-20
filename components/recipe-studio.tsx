@@ -43,6 +43,7 @@ import {
 import { useBrewStore, hasStorageFailure } from "@/lib/store";
 import { calculateRecipe } from "@/lib/calculations";
 import { bjcpBeerStyles } from "@/lib/bjcp";
+import { hasBeerGuevaraConnector } from "@/lib/stockist-catalog";
 import { aiProviders, type AIProvider } from "@/lib/profile-settings";
 import { optimizeSingleSupplier, requirementsFor } from "@/lib/optimizer";
 import { grainCatalog, hopCatalog, isLegacyDemoRecipe } from "@/lib/seed";
@@ -55,6 +56,7 @@ import type {
   Recipe,
 } from "@/lib/types";
 import * as UI from "./ui";
+import RecipeBuilder from "./recipe-builder";
 
 type View = "studio" | "inventory" | "sourcing" | "recipes";
 type Modal =
@@ -133,6 +135,7 @@ export default function RecipeStudio() {
   );
   const best = sourcing.options[0];
   const [supplierChoice, setSupplierChoice] = useState("");
+  const [refreshingSupplier, setRefreshingSupplier] = useState<string | null>(null);
   const selectedCart =
     sourcing.options.find((option) => option.supplier.id === supplierChoice) ??
     best;
@@ -155,6 +158,7 @@ export default function RecipeStudio() {
     : 0;
   const [view, setView] = useState<View>("studio");
   const [modal, setModal] = useState<Modal>(null);
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [manual, setManual] = useState(false);
   const [activeTab, setActiveTab] = useState("grains");
   const [toast, setToast] = useState("");
@@ -361,19 +365,25 @@ export default function RecipeStudio() {
     }
   }
   async function refreshSupplier(supplierId: string) {
+    if (refreshingSupplier) return;
+    setRefreshingSupplier(supplierId);
     try {
       const result = await api("/api/suppliers/refresh", "POST", {
         id: supplierId,
       });
       const supplier = supplierSchema.parse(result.supplier);
       store.setSuppliers(
-        suppliers.map((item) => (item.id === supplier.id ? supplier : item)),
+        useBrewStore.getState().suppliers.map((item) => (item.id === supplier.id ? supplier : item)),
       );
-      setToast("Supplier catalog refreshed.");
+      const skipped = supplier.catalogSync?.skipped ?? 0;
+      const count = supplier.products.length;
+      setToast(`Catalog refreshed: ${count} ${count === 1 ? "product" : "products"}.${skipped ? ` ${skipped} non-ingredient or unverified entries skipped.` : ""}`);
     } catch (cause) {
       setToast(
         cause instanceof Error ? cause.message : "Catalog refresh failed.",
       );
+    } finally {
+      setRefreshingSupplier(null);
     }
   }
   async function deleteSavedRecipe(recipeId: string) {
@@ -585,7 +595,7 @@ export default function RecipeStudio() {
           url: text("url"),
           currency: text("currency"),
           shipping: numeric("shipping"),
-          products: JSON.parse(text("products")),
+          products: JSON.parse(text("products") || "[]"),
         });
         if (user) await api("/api/suppliers", "POST", supplier);
         store.setSuppliers([...suppliers, supplier]);
@@ -698,6 +708,10 @@ export default function RecipeStudio() {
               <UI.Button onClick={() => openModal("export")}>
                 <ArrowDownToLine size={14} />
                 Export
+              </UI.Button>
+              <UI.Button onClick={() => setBuilderOpen(true)}>
+                <Sparkles size={14} />
+                Create new recipe
               </UI.Button>
               <UI.Button
                 $primary
@@ -1832,9 +1846,28 @@ export default function RecipeStudio() {
                         </UI.Row>
                         <h3>{supplier.name}</h3>
                         <p>
-                          {supplier.products.length} catalog products ·{" "}
+                          {supplier.products.filter((product) => product.stock > 0).length} stocked / {supplier.products.length} products ·{" "}
                           {money(supplier.shipping, supplier.currency)} delivery
                         </p>
+                        {hasBeerGuevaraConnector(supplier.url) && <UI.Badge $tone="blue">BeerGuevara website catalog</UI.Badge>}
+                        {supplier.catalogSync && <p>
+                          Checked {new Date(supplier.catalogSync.checkedAt).toLocaleString("en-ZA")}
+                          {supplier.catalogSync.skipped > 0 && ` · ${supplier.catalogSync.skipped} non-ingredient or unverified entries skipped`}
+                        </p>}
+                        {supplier.products.length > 0 && <details>
+                          <summary style={{ cursor: "pointer", fontSize: 11 }}>Catalog inventory</summary>
+                          <UI.TableScroll style={{ maxHeight: 240, overflowY: "auto", marginTop: 10 }}>
+                            <UI.Table aria-label={`${supplier.name} catalog inventory`}>
+                              <thead><tr><th>Ingredient</th><th>Pack</th><th>Price</th><th>Stock</th></tr></thead>
+                              <tbody>{supplier.products.map((product, index) => <tr key={`${product.ingredient}-${product.packageSize}-${index}`}>
+                                <td>{product.ingredient}</td>
+                                <td>{product.packageSize} {product.kind === "grain" ? "kg" : product.kind === "yeast" ? "pack" : "g"}</td>
+                                <td>{money(product.price, supplier.currency)}</td>
+                                <td>{product.stock}</td>
+                              </tr>)}</tbody>
+                            </UI.Table>
+                          </UI.TableScroll>
+                        </details>}
                         <UI.Row $between $wrap>
                           <a
                             href={supplier.url}
@@ -1848,13 +1881,15 @@ export default function RecipeStudio() {
                           <UI.Row>
                             {user && <UI.IconButton
                               aria-label={`Refresh ${supplier.name} catalog`}
-                              title="Refresh approved API feed"
-                              disabled={!online}
+                              title={hasBeerGuevaraConnector(supplier.url) ? "Refresh BeerGuevara website catalog" : "Refresh approved API feed"}
+                              disabled={!online || refreshingSupplier !== null}
+                              aria-busy={refreshingSupplier === supplier.id}
                               onClick={() => refreshSupplier(supplier.id)}
-                            ><RefreshCw size={13} /></UI.IconButton>}
+                            >{refreshingSupplier === supplier.id ? <LoaderCircle size={13} /> : <RefreshCw size={13} />}</UI.IconButton>}
                             <UI.IconButton
                               aria-label={`Remove ${supplier.name}`}
                               title="Remove stockist"
+                              disabled={refreshingSupplier === supplier.id}
                               onClick={async () => {
                                 try {
                                   if (user)
@@ -2034,6 +2069,22 @@ export default function RecipeStudio() {
           event.target.value = "";
         }}
       />
+      {builderOpen && <RecipeBuilder
+        recipe={recipe}
+        inventory={inventory}
+        suppliers={suppliers}
+        units={units}
+        ready={aiConfigured && !!user}
+        online={online}
+        onClose={() => setBuilderOpen(false)}
+        onStockists={() => { setBuilderOpen(false); setView("sourcing"); }}
+        onApply={(next, explanation) => {
+          applyRecipe(next);
+          useBrewStore.setState({ messages: [{ id: id(), role: "assistant", content: explanation }] });
+          setView("studio");
+          setBuilderOpen(false);
+        }}
+      />}
       <UI.Dialog
         ref={dialog}
         onCancel={() => setModal(null)}
@@ -2211,10 +2262,9 @@ export default function RecipeStudio() {
                 </UI.Field>
               </UI.Fields>
               <UI.Field>
-                Product catalog (JSON)
+                Product catalog (JSON, optional)
                 <textarea
                   name="products"
-                  required
                   defaultValue="[]"
                 />
               </UI.Field>
